@@ -1,0 +1,36 @@
+PATIENT MEDICAL RECORD & DISCHARGE SUMMARY
+Apollo Hospitals, Jubilee Hills, Hyderabad, Telangana - 500033
+Contact: +91-40-23607777 | Email: support@apollohyderabad.org
+Website: https://www.apollohospitals.com/hyderabad
+
+Patient Name: Rajesh Kumar Sharma
+Age/Gender: 48 Y / Male
+DOB: 14/08/1977
+UHID / MRN: AH-HYD-2026-88492
+Aadhaar No: 4829-1029-4820
+Contact Phone: +91 98490 12345
+Patient Email: rajesh.sharma77@gmail.com
+Residential Address: Flat 402, Sai Residency, Road No 12, Banjara Hills, Hyderabad, Telangana - 500034
+
+Date of Admission: 12/03/2026
+Date of Discharge: 18/03/2026
+Attending Consultant: Dr. Ananya Deshmukh, MD (Cardiology)
+Referring Physician: Dr. Vikramaditya Rao (Clinic IP: 192.168.1.104)
+
+CHIEF COMPLAINTS & HISTORY OF PRESENT ILLNESS:
+Patient Mr. Rajesh Kumar Sharma presented to the Emergency Department at Apollo Hospitals Jubilee Hills on 12th March 2026 with complaints of acute retrosternal chest pain radiating to the left arm, associated with diaphoresis and nausea for 3 hours.
+
+PAST MEDICAL HISTORY:
+- Type 2 Diabetes Mellitus x 8 years (under treatment with Metformin 500mg BD)
+- Essential Hypertension x 5 years (under treatment with Amlodipine 5mg OD)
+
+DIAGNOSIS & CLINICAL FINDINGS:
+ECG showed ST-segment elevation in leads II, III, and aVF. Troponin-I elevated (4.8 ng/mL). Diagnosed with Acute Inferior Wall Myocardial Infarction. Emergency Percutaneous Coronary Intervention (PCI) performed by Dr. Ananya Deshmukh. Drug-eluting stent (DES) deployed to Right Coronary Artery (RCA).
+
+DISCHARGE MEDICATIONS & ADVICE:
+1. Tab. Ecosprin 75mg OD after lunch.
+2. Tab. Ticagrelor 90mg BD for 12 months.
+3. Tab. Atorvastatin 40mg HS.
+Follow-up appointment scheduled at Apollo Cardiology OPD with Dr. Deshmukh on 25/03/2026.
+
+Report verified by Medical Officer Dr. Priya Nair (Registration No: TS-MMC-48921).

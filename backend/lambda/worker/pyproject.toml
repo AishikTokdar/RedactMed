@@ -1,0 +1,15 @@
+[project]
+name = "worker"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "aws-lambda-powertools>=3.24.0",
+    "agent",
+    "deidentification",
+]
+
+
+[tool.uv.sources]
+agent = { workspace = true }
+deidentification = { workspace = true }

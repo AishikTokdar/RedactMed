@@ -1,0 +1,14 @@
+# AWS Region for deployment (Ensure Amazon Bedrock Claude access is enabled in this region)
+aws_region = "us-east-1"
+
+# Environment name (dev, staging, prod)
+environment = "dev"
+
+# Naming prefix for resources
+app_name = "redactmed"
+
+# Bedrock Model ID for Claude Sonnet 4.5 / 3.5
+bedrock_model_id = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+
+# Max retries before moving message to Dead-Letter Queue (DLQ)
+sqs_max_receive_count = 3

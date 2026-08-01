@@ -1,0 +1,28 @@
+CLINICAL OUTPATIENT CONSULTATION NOTE
+Fortis Memorial Research Institute, Sector 44, Gurugram, Haryana - 122002
+Consultation Date: 05/04/2026
+
+Patient Name: Sunita Ramesh Patel
+DOB: 03/11/1984 (Age: 41 Y / Female)
+Patient ID / MRN: FMRI-GUR-90412
+Aadhaar ID: 7721-9940-1123
+Phone: +91-98101-88902 | Alt Phone: 0124-4589000
+Email: patel.sunita84@yahoo.co.in
+Address: H.No 148, DLF Phase 4, Near Supermart 1, Gurugram, Haryana - 122009
+
+Attending Doctor: Dr. Arvind Swaminathan, DM (Gastroenterology)
+Department: Hepatology & Gastroenterology
+IP Access Terminal: 10.240.12.88
+Portal: https://patient.fortishealthcare.com/records/90412
+
+REASON FOR VISIT:
+Mrs. Sunita Patel presents to the OPD for evaluation of persistent epigastric pain, bloating, and postprandial fullness for the past 6 weeks.
+
+EXAMINATION & DIAGNOSTIC IMPRESSION:
+Abdomen soft, mild epigastric tenderness. No organomegaly. Upper GI Endoscopy conducted on 06/04/2026 revealed antral gastritis with H. pylori infection. Biopsy confirmed non-ulcerative antral gastritis.
+
+TREATMENT PLAN:
+1. Triple Therapy Protocol for H. pylori (Amoxicillin 1g BD + Clarithromycin 500mg BD + Esomeprazole 40mg BD for 14 days).
+2. Dietary counseling provided by Clinical Nutritionist Neha Kapoor.
+
+Review in OPD after 2 weeks with Dr. Arvind Swaminathan. Emergency Contact: Mr. Ramesh Patel (+91-98101-88900).

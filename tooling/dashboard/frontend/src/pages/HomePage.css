@@ -1,0 +1,173 @@
+.home-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.eval-info {
+  display: flex;
+  gap: 12px;
+}
+
+.eval-mode,
+.eval-files {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.home-page .loading-state,
+.home-page .error-state {
+  height: 200px;
+}
+
+.tabs-container {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.tab.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+/* Failed notes styling */
+.eval-failed {
+  font-size: 12px;
+  padding: 6px 12px;
+  background: rgba(255, 149, 0, 0.15);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 6px;
+  color: var(--accent-failed);
+  font-weight: 600;
+}
+
+[data-theme="light"] .eval-failed {
+  background: rgba(253, 126, 20, 0.15);
+  border-color: rgba(253, 126, 20, 0.3);
+}
+
+.failed-notes-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid rgba(255, 149, 0, 0.25);
+  border-radius: 8px;
+  color: var(--accent-failed);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+[data-theme="light"] .failed-notes-banner {
+  background: rgba(253, 126, 20, 0.1);
+  border-color: rgba(253, 126, 20, 0.25);
+}
+
+.failed-notes-banner .failed-icon {
+  font-size: 1.125rem;
+}
+
+.failed-notes-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 149, 0, 0.2);
+}
+
+[data-theme="light"] .failed-notes-section {
+  border-color: rgba(253, 126, 20, 0.2);
+}
+
+.failed-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-failed);
+  margin-bottom: 0.5rem;
+}
+
+.failed-title .failed-icon {
+  font-size: 1.125rem;
+}
+
+.failed-description {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.failed-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.failed-note-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-failed);
+  border-radius: 6px;
+}
+
+.failed-note-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.failed-note-fn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}

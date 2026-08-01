@@ -1,0 +1,290 @@
+"""DynamoDB batch stats read module for API."""
+
+import base64
+import json
+import os
+from datetime import datetime, timezone, timedelta
+
+import boto3
+from boto3.dynamodb.conditions import Key
+
+STATS_TABLE_NAME = os.environ.get("STATS_TABLE_NAME", "")
+PII_ATTR_PREFIX = "pii_"
+
+_dynamodb_resource = None
+_stats_table = None
+
+
+def _get_stats_table():
+    """Lazy initialization of DynamoDB table resource."""
+    global _dynamodb_resource, _stats_table
+    if not STATS_TABLE_NAME:
+        return None
+    if _stats_table is None:
+        _dynamodb_resource = boto3.resource("dynamodb")
+        _stats_table = _dynamodb_resource.Table(STATS_TABLE_NAME)
+    return _stats_table
+
+
+def _is_recently_updated(updated_at: str, threshold_minutes: int = 2) -> bool:
+    """
+    Check if the timestamp is within threshold_minutes of now.
+
+    Args:
+        updated_at: ISO format timestamp string
+        threshold_minutes: Number of minutes to consider "recent"
+
+    Returns:
+        True if timestamp is within threshold, False otherwise
+    """
+    if not updated_at:
+        return False
+
+    try:
+        updated_time = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        age = now - updated_time
+        return age < timedelta(minutes=threshold_minutes)
+    except (ValueError, TypeError):
+        return False
+
+
+def get_batch_stats(batch_id: str) -> dict | None:
+    """
+    Read batch stats from DynamoDB.
+
+    Returns None if DynamoDB is not configured or item not found.
+    Status is read directly from DB (no computation).
+    """
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return None
+
+    response = stats_table.get_item(Key={"batch_id": batch_id, "record_type": "BATCH"})
+    stats = response.get("Item")
+
+    if not stats:
+        return None
+
+    input_count = int(stats.get("input_count", 0))
+    processed_count = int(stats.get("processed_count", 0))
+    approved_count = int(stats.get("approved_count", 0))
+
+    # Read status directly from DB (set by workers)
+    status = stats.get("status", "created")
+
+    # Override partially-completed with processing if still active
+    # This keeps Retry button hidden while notes are still being processed
+    if (
+        status == "partially-completed"
+        and processed_count < input_count
+        and _is_recently_updated(stats.get("updated_at", ""), threshold_minutes=2)
+    ):
+        status = "processing"
+
+    all_approved = (
+        status == "completed"
+        and approved_count >= input_count
+        and input_count > 0
+    )
+
+    # Extract pii_* attributes and convert to by_type dict
+    # Filter out zero counts to match existing API response format
+    pii_by_type = {}
+    for key, value in stats.items():
+        if key.startswith(PII_ATTR_PREFIX):
+            count = int(value)
+            if count > 0:
+                pii_type = key[len(PII_ATTR_PREFIX):].upper()
+                pii_by_type[pii_type] = count
+
+    # Sort by count descending, then alphabetically
+    sorted_pii_by_type = dict(sorted(
+        pii_by_type.items(),
+        key=lambda x: (-x[1], x[0])
+    ))
+
+    return {
+        "batch_id": batch_id,
+        "status": status,
+        "input_count": input_count,
+        "output_count": processed_count,
+        "all_approved": all_approved,
+        "created_at": stats.get("created_at", ""),
+        "started_at": stats.get("started_at", ""),
+        "completed_at": stats.get("completed_at", ""),
+        "failed_at": stats.get("failed_at", ""),
+        "last_redrive_at": stats.get("last_redrive_at", ""),
+        "approved_at": stats.get("approved_at", ""),
+        "pii_stats": {
+            "entity_file_count": processed_count,
+            "notes_with_pii": int(stats.get("notes_with_pii", 0)),
+            "total_entities": int(stats.get("total_entities", 0)),
+            "by_type": sorted_pii_by_type,
+        },
+        "approval_stats": {
+            "approved_note_count": approved_count,
+            "approval_file_count": approved_count,
+        },
+    }
+
+
+def increment_approval_count(batch_id: str, delta: int) -> None:
+    """
+    Atomically increment or decrement approval count.
+
+    Args:
+        batch_id: The batch ID
+        delta: 1 for increment, -1 for decrement
+    """
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    stats_table.update_item(
+        Key={"batch_id": batch_id, "record_type": "BATCH"},
+        UpdateExpression="ADD approved_count :delta SET updated_at = :now",
+        ExpressionAttributeValues={":delta": delta, ":now": now},
+    )
+
+
+def set_processing_status_for_redrive(batch_id: str) -> None:
+    """Set status to processing and update last_redrive_at timestamp for redrive."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    stats_table.update_item(
+        Key={"batch_id": batch_id, "record_type": "BATCH"},
+        UpdateExpression="""
+            SET last_redrive_at = :now,
+                #status = :status,
+                updated_at = :now
+        """,
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={
+            ":now": now,
+            ":status": "processing",
+        },
+    )
+
+
+def set_approved_at(batch_id: str) -> None:
+    """Set approved_at timestamp when all notes are approved."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    stats_table.update_item(
+        Key={"batch_id": batch_id, "record_type": "BATCH"},
+        UpdateExpression="SET approved_at = :now, updated_at = :now",
+        ExpressionAttributeValues={":now": now},
+    )
+
+
+def list_all_batches(limit: int, cursor: str | None) -> dict:
+    """
+    List batches using GSI, sorted by created_at descending.
+
+    Args:
+        limit: Maximum number of items to return
+        cursor: Base64-encoded LastEvaluatedKey for pagination
+
+    Returns:
+        dict with 'items' (list of batch dicts) and 'next_cursor' (str or None)
+    """
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return {"items": [], "next_cursor": None}
+
+    query_params = {
+        "IndexName": "BatchesByCreatedAt",
+        "KeyConditionExpression": Key("record_type").eq("BATCH"),
+        "ScanIndexForward": False,  # newest first
+        "Limit": limit,
+    }
+
+    if cursor:
+        try:
+            query_params["ExclusiveStartKey"] = json.loads(
+                base64.b64decode(cursor).decode()
+            )
+        except Exception:
+            pass  # Invalid cursor, ignore
+
+    response = stats_table.query(**query_params)
+
+    items = response.get("Items", [])
+    next_cursor = None
+
+    if "LastEvaluatedKey" in response:
+        next_cursor = base64.b64encode(
+            json.dumps(response["LastEvaluatedKey"]).encode()
+        ).decode()
+
+    return {"items": items, "next_cursor": next_cursor}
+
+
+def list_notes_from_dynamo(batch_id: str, limit: int, cursor: str | None) -> dict:
+    """
+    List notes for a batch from DynamoDB with efficient pagination.
+
+    Args:
+        batch_id: The batch ID
+        limit: Maximum number of items to return
+        cursor: Base64-encoded LastEvaluatedKey for pagination
+
+    Returns:
+        dict with 'items' (list of note dicts) and 'next_cursor' (str or None)
+    """
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return {"items": [], "next_cursor": None}
+
+    query_params = {
+        "KeyConditionExpression": Key("batch_id").eq(batch_id) & Key("record_type").begins_with("NOTE#"),
+        "Limit": limit,
+    }
+
+    if cursor:
+        try:
+            query_params["ExclusiveStartKey"] = json.loads(
+                base64.b64decode(cursor).decode()
+            )
+        except Exception:
+            pass  # Invalid cursor, ignore
+
+    response = stats_table.query(**query_params)
+
+    items = [
+        {
+            "note_id": item.get("note_id", item.get("record_type", "").replace("NOTE#", "")),
+            "has_output": item.get("has_output", False),
+            "approved": item.get("approved", False),
+        }
+        for item in response.get("Items", [])
+    ]
+
+    next_cursor = None
+    if "LastEvaluatedKey" in response:
+        next_cursor = base64.b64encode(
+            json.dumps(response["LastEvaluatedKey"]).encode()
+        ).decode()
+
+    return {"items": items, "next_cursor": next_cursor}
+
+
+def update_note_approved_status(batch_id: str, note_id: str, approved: bool) -> None:
+    """Update note's approved status in DynamoDB."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    stats_table.update_item(
+        Key={"batch_id": batch_id, "record_type": f"NOTE#{note_id}"},
+        UpdateExpression="SET approved = :val",
+        ExpressionAttributeValues={":val": approved},
+    )
