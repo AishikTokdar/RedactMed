@@ -156,8 +156,12 @@ if [[ -z "$STATS_TABLE" || "$STATS_TABLE" == "None" ]]; then
   echo "Warning: Could not resolve stats table from stack '$STACK_NAME'. DynamoDB entry not created." >&2
 else
   if [[ -n "$NOTES_DIR" ]]; then
-    STATUS="ready"
     INPUT_COUNT=$(find "$NOTES_DIR" -maxdepth 1 -name "*.txt" -type f 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$INPUT_COUNT" -gt 0 ]]; then
+      STATUS="ready"
+    else
+      STATUS="created"
+    fi
   else
     STATUS="created"
     INPUT_COUNT=0

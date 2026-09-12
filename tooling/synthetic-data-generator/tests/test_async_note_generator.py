@@ -84,24 +84,13 @@ class TestAsyncNoteGeneratorGeneration:
         ):
             generator = AsyncNoteGenerator(config=async_config, rate_limit=150)
             generator.bedrock = mock_async_bedrock
-
-            # Track limiter acquisition
-            limiter_acquired = False
-            original_acquire = generator.limiter.acquire
-
-            async def track_acquire(*args, **kwargs):
-                nonlocal limiter_acquired
-                limiter_acquired = True
-                return await original_acquire(*args, **kwargs)
-
-            generator.limiter.acquire = track_acquire
+            generator.limiter = AsyncMock()
 
             await generator.generate_note(
                 bundle_path=minimal_fhir_bundle_path,
                 note_type=NoteType.EMERGENCY_DEPT
             )
-
-        assert limiter_acquired, "Rate limiter should be acquired before generation"
+            assert generator.limiter.__aenter__.called, "Rate limiter should be acquired before generation"
 
 
 @pytest.mark.asyncio

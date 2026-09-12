@@ -217,6 +217,20 @@ async def run_cli() -> None:
         max_entities=args.max_entities,
     )
 
+    if args.input_path is not None:
+        document_text = load_document(args.input_path)
+        source_name = args.source_name or str(args.input_path)
+        response = await process_document(
+            document_text,
+            source_name=source_name,
+            detection=detection,
+            language=args.language,
+            max_chars=args.max_chars,
+        )
+        payload = build_response_payload(response, source_name, args.language, detection, args.raw_response)
+        print(json.dumps(payload, indent=2))
+        return
+
     if args.dataset is not None:
         await process_dataset(
             args.dataset,
@@ -231,21 +245,8 @@ async def run_cli() -> None:
         )
         return
 
-    if args.input_path is None:
-        logger.error("You must supply either an input_path or --dataset.")
-        raise SystemExit(2)
-
-    document_text = load_document(args.input_path)
-    source_name = args.source_name or str(args.input_path)
-    response = await process_document(
-        document_text,
-        source_name=source_name,
-        detection=detection,
-        language=args.language,
-        max_chars=args.max_chars,
-    )
-    payload = build_response_payload(response, source_name, args.language, detection, args.raw_response)
-    print(json.dumps(payload, indent=2))
+    logger.error("You must supply either an input_path or --dataset.")
+    raise SystemExit(2)
 
 def main() -> None:
     try:

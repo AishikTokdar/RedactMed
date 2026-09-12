@@ -23,3 +23,6 @@ dev = [
     "botocore-stubs>=1.42.41",
     "python-dotenv>=1.2.1",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

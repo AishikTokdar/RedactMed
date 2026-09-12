@@ -31,7 +31,13 @@ def _scrubbing_callback(m: logfire.ScrubMatch):
 _scrubbing_options = logfire.ScrubbingOptions(callback=_scrubbing_callback)
 
 # Configure logfire instrumentation
-logfire.configure(scrubbing=_scrubbing_options)
+logfire_send = os.getenv("LOGFIRE_SEND_TO_LOGFIRE")
+if logfire_send is not None:
+    send_to_logfire = logfire_send.lower() in ("true", "1", "yes")
+else:
+    send_to_logfire = "if-token-present"
+
+logfire.configure(scrubbing=_scrubbing_options, send_to_logfire=send_to_logfire)
 logfire.instrument_pydantic_ai()
 
 # Determine model provider (default: bedrock)
@@ -86,9 +92,13 @@ elif LLM_PROVIDER == "gemini":
 
 elif LLM_PROVIDER == "ollama":
     # Local Ollama model support (100% Free local execution, e.g. MODEL_NAME="llama3.2")
+    from pydantic_ai.models.openai import OpenAIModel
+    from pydantic_ai.providers.openai import OpenAIProvider
+
     ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    ollama_model = OpenAIModel(MODEL_ID, provider=OpenAIProvider(base_url=ollama_base_url, api_key="ollama"))
     pii_agent = Agent[None, CompactAgentResponse](
-        model=f"openai:{MODEL_ID}",
+        model=ollama_model,
         instructions=SYSTEM_PROMPT,
         output_type=ToolOutput(CompactAgentResponse),
     )

@@ -37,6 +37,8 @@
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
   - [Step 5: Generating Synthetic Test Data](#step-5-generating-synthetic-test-data)
   - [Step 6: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-6-handling-failures--dead-letter-queue-dlq-redrive)
+  - [Step 7: Running Unit &amp; Integration Test Suites](#step-7-running-unit--integration-test-suites)
+  - [Step 8: Standalone Python CLI &amp; Local Processing](#step-8-standalone-python-cli--local-processing)
 - [Cost Drivers &amp; Prompt Caching Optimization](#cost-drivers--prompt-caching-optimization)
 - [Credits &amp; License](#credits--license)
 - [Disclaimers](#disclaimers)
@@ -839,6 +841,71 @@ If any clinical note encounters transient model rate limits, malformed formattin
 ```bash
 curl -X POST "$API_URL/batches/$BATCH_ID/redrive" \
   -H "Authorization: Bearer <Cognito_JWT_Token>"
+```
+
+---
+
+### Step 7: Running Unit & Integration Test Suites
+
+RedactMed includes comprehensive automated test coverage across backend services, agents, Lambda event handlers, and synthetic data tooling:
+
+```bash
+# Run all backend test suites simultaneously using the root test runner
+chmod +x ./backend/run_tests.sh
+./backend/run_tests.sh
+```
+
+You can also run individual package test suites using `pytest`:
+
+```bash
+# De-identification core redaction engine tests
+cd backend/deidentification && pytest
+
+# Pydantic-AI Agent orchestration tests
+cd backend/agent && pytest
+
+# Serverless Lambda handlers (Ingestion, Worker, API REST endpoints)
+cd backend/lambda/ingestion && pytest
+cd backend/lambda/worker && pytest
+cd backend/lambda/api && pytest
+
+# Synthetic data generator FHIR parser tests
+cd tooling/synthetic-data-generator && pytest
+```
+
+---
+
+### Step 8: Standalone Python CLI & Local Processing
+
+For local development, bulk batch evaluation, or offline environments, RedactMed includes a dedicated CLI tool in [`tooling/cli`](./tooling/cli/) to run de-identification directly without deploying AWS cloud infrastructure:
+
+#### 1. Installation
+
+```bash
+cd tooling/cli
+pip install -e .
+```
+
+#### 2. Usage Examples
+
+```bash
+# Process a single clinical text file
+python -m cli.run_deidentification \
+  --input ../../sample_notes/sample_indian_clinical_note_1.txt \
+  --output-dir ./output/
+
+# Process an entire directory of clinical notes
+python -m cli.run_deidentification \
+  --input-dir ./sample_notes/ \
+  --output-dir ./output/ \
+  --format text
+
+# Use local Ollama (100% Free / Offline) instead of AWS Bedrock
+python -m cli.run_deidentification \
+  --input ../../sample_notes/sample_indian_clinical_note_1.txt \
+  --output-dir ./output/ \
+  --provider ollama \
+  --model-id llama3.2
 ```
 
 ---

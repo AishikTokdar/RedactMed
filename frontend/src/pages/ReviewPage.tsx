@@ -302,11 +302,11 @@ export default function ReviewPage() {
           <>
             <div className="review-toolbar">
               <div className="toolbar-left">
-                <button className="btn btn-sm" onClick={() => goToNote(notes[currentIdx - 1].note_id)} disabled={!hasPrev}>
+                <button className="btn btn-sm" onClick={() => hasPrev && goToNote(notes[currentIdx - 1]?.note_id)} disabled={!hasPrev}>
                   &larr; Prev
                 </button>
                 <span className="toolbar-note-name">{selectedNoteId}</span>
-                <button className="btn btn-sm" onClick={() => goToNote(notes[currentIdx + 1].note_id)} disabled={!hasNext}>
+                <button className="btn btn-sm" onClick={() => hasNext && goToNote(notes[currentIdx + 1]?.note_id)} disabled={!hasNext}>
                   Next &rarr;
                 </button>
                 <span className="toolbar-position">{currentIdx + 1} of {totalNotes}</span>

@@ -163,7 +163,7 @@ class FHIRBundleParser:
         data.birth_country = birth_place.get('country', '')
         data.birth_city_and_state = ", ".join([address_part for address_part in [data.birth_city, data.birth_state] if address_part]).strip()
         data.birth_state_and_country = ", ".join([address_part for address_part in [data.birth_state, data.birth_country] if address_part]).strip()
-        data.birth_city_state_and_country = ", ".join([address_part for address_part in [data.city, data.state, data.country] if address_part]).strip()
+        data.birth_city_state_and_country = ", ".join([address_part for address_part in [data.birth_city, data.birth_state, data.birth_country] if address_part]).strip()
         data.disability_adjusted_life_years = round_and_to_str(jmespath.search(f"extension[?url=='{ExtensionURL.DISABILITY_ADJUSTED_LIFE_YEARS}'] | [0].valueDecimal", patient))
         data.quality_adjusted_life_years = round_and_to_str(jmespath.search(f"extension[?url=='{ExtensionURL.QUALITY_ADJUSTED_LIFE_YEARS}'] | [0].valueDecimal", patient))
 
@@ -198,7 +198,7 @@ class FHIRBundleParser:
             # Extract location and providers
             locations = jmespath.search("location[].location.display", enc) or []
             data.location_name = ', '.join(locations)
-            data.provider_name = jmespath.search("serviceProvider.display", enc) or []
+            data.provider_name = jmespath.search("serviceProvider.display", enc) or ""
 
             # Extract primary practitioner
             primary_practitioner = jmespath.search("participant[?type[?coding[?code=='PPRF']]].individual | [0]", enc) or {}

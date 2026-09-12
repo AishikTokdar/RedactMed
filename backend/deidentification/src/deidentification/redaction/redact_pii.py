@@ -207,7 +207,7 @@ def redact_text(
                 )
                 continue
 
-            redacted_text = pattern.sub(tag, redacted_text)
+            redacted_text = pattern.sub(lambda _: tag, redacted_text)
             total_replacements += occurrences
             successful_in_group += 1
 
@@ -467,8 +467,8 @@ def main() -> None:
     # Create formatter from args
     formatter = create_formatter_from_args(args)
     
-    # Resolve directories
-    project_root = Path(__file__).parent
+    # Resolve directories relative to CWD
+    project_root = Path.cwd()
     input_dir = args.input_dir
     if not input_dir.is_absolute():
         input_dir = project_root / input_dir

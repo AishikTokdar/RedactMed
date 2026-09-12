@@ -477,6 +477,7 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
 
     redriven_count = 0
     max_iterations = 100  # Safety limit
+    seen_message_ids: set[str] = set()
 
     for _ in range(max_iterations):
         # Receive up to 10 messages from DLQ
@@ -491,7 +492,14 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         if not messages:
             break
 
+        new_messages_found = False
         for message in messages:
+            msg_id = message.get("MessageId")
+            if msg_id in seen_message_ids:
+                continue
+            seen_message_ids.add(msg_id)
+            new_messages_found = True
+
             try:
                 msg_body = json.loads(message["Body"])
                 if msg_body.get("batch_id") != batch_id:
@@ -512,6 +520,9 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
                 redriven_count += 1
             except Exception as exc:
                 logger.warning("Failed to redrive message: %s", exc)
+
+        if not new_messages_found:
+            break
 
     # Update batch status
     if redriven_count > 0:
