@@ -72,6 +72,9 @@ export default function DashboardPage() {
   const [approvingAll, setApprovingAll] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
+  const [isBulkApproving, setIsBulkApproving] = useState(false)
+  const [isBulkStarting, setIsBulkStarting] = useState(false)
   const [toasts, setToasts] = useState<DashboardToast[]>([])
   const toastTimeoutIdsRef = useRef<Array<ReturnType<typeof window.setTimeout>>>([])
 
@@ -92,6 +95,58 @@ export default function DashboardPage() {
     setSelectedBatchId(newBatchId)
     pushToast(`Batch ${newBatchId} created with ${noteCount} note${noteCount === 1 ? '' : 's'}. Ready for de-identification!`, 'success')
   }, [queryClient, pushToast])
+
+  const toggleBatchSelection = useCallback((batchId: string, event?: React.SyntheticEvent) => {
+    if (event) event.stopPropagation()
+    setSelectedBatchIds((prev) =>
+      prev.includes(batchId) ? prev.filter((id) => id !== batchId) : [...prev, batchId]
+    )
+  }, [])
+
+  const toggleSelectAllOnPage = useCallback((currentPageBatchIds: string[]) => {
+    setSelectedBatchIds((prev) => {
+      const allSelected = currentPageBatchIds.every((id) => prev.includes(id))
+      if (allSelected) {
+        return prev.filter((id) => !currentPageBatchIds.includes(id))
+      }
+      return Array.from(new Set([...prev, ...currentPageBatchIds]))
+    })
+  }, [])
+
+  const clearBatchSelection = useCallback(() => {
+    setSelectedBatchIds([])
+  }, [])
+
+  const handleBulkApproveSelected = useCallback(async () => {
+    if (selectedBatchIds.length === 0 || isBulkApproving) return
+    setIsBulkApproving(true)
+    try {
+      await Promise.all(selectedBatchIds.map((id) => approveAllNotes(id)))
+      queryClient.invalidateQueries({ queryKey: ['batches'] })
+      queryClient.invalidateQueries({ queryKey: ['batch'] })
+      pushToast(`Successfully approved all notes across ${selectedBatchIds.length} batch${selectedBatchIds.length === 1 ? '' : 'es'}!`, 'success')
+      setSelectedBatchIds([])
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : 'Bulk approval failed', 'error')
+    } finally {
+      setIsBulkApproving(false)
+    }
+  }, [selectedBatchIds, isBulkApproving, queryClient, pushToast])
+
+  const handleBulkStartSelected = useCallback(async () => {
+    if (selectedBatchIds.length === 0 || isBulkStarting) return
+    setIsBulkStarting(true)
+    try {
+      await Promise.all(selectedBatchIds.map((id) => startBatch(id)))
+      queryClient.invalidateQueries({ queryKey: ['batches'] })
+      pushToast(`Started processing ${selectedBatchIds.length} batch${selectedBatchIds.length === 1 ? '' : 'es'}!`, 'success')
+      setSelectedBatchIds([])
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : 'Bulk start failed', 'error')
+    } finally {
+      setIsBulkStarting(false)
+    }
+  }, [selectedBatchIds, isBulkStarting, queryClient, pushToast])
 
   useEffect(() => {
     return () => {
@@ -280,7 +335,19 @@ export default function DashboardPage() {
         </div>
 
         <div className="sidebar-section">
-          <div className="sidebar-label">Batches <span className="sidebar-count">{totalBatches}</span></div>
+          <div className="sidebar-label">
+            <span>Batches <span className="sidebar-count">{totalBatches}</span></span>
+            {batches.length > 0 && (
+              <label className="select-all-checkbox-label" title="Select All Batches on Page">
+                <input
+                  type="checkbox"
+                  checked={batches.length > 0 && batches.every(b => selectedBatchIds.includes(b.batch_id))}
+                  onChange={() => toggleSelectAllOnPage(batches.map(b => b.batch_id))}
+                />
+                All
+              </label>
+            )}
+          </div>
           <div className="sidebar-list">
             {batchesLoading ? (
               <div className="sidebar-empty">Loading...</div>
@@ -290,18 +357,29 @@ export default function DashboardPage() {
               <>
                 {batches.map((batch: Batch) => {
                   const sidebarStatus = getBatchStatusDisplay(batch.status, !!batch.all_approved)
+                  const isChecked = selectedBatchIds.includes(batch.batch_id)
 
                   return (
-                    <button
+                    <div
                       key={batch.batch_id}
-                      className={`sidebar-item ${batch.batch_id === selectedBatchId ? 'active' : ''}`}
-                      onClick={() => setSelectedBatchId(batch.batch_id)}
+                      className={`sidebar-item-wrapper ${batch.batch_id === selectedBatchId ? 'active' : ''} ${isChecked ? 'selected' : ''}`}
                     >
-                      <span className="sidebar-item-name">{batch.batch_id}</span>
-                      <span className={`sidebar-badge sidebar-badge-${sidebarStatus.key}`}>
-                        {sidebarStatus.label}
-                      </span>
-                    </button>
+                      <input
+                        type="checkbox"
+                        className="batch-item-checkbox"
+                        checked={isChecked}
+                        onChange={(e) => toggleBatchSelection(batch.batch_id, e)}
+                      />
+                      <button
+                        className="sidebar-item-btn"
+                        onClick={() => setSelectedBatchId(batch.batch_id)}
+                      >
+                        <span className="sidebar-item-name">{batch.batch_id}</span>
+                        <span className={`sidebar-badge sidebar-badge-${sidebarStatus.key}`}>
+                          {sidebarStatus.label}
+                        </span>
+                      </button>
+                    </div>
                   )
                 })}
                 {hasNextPage && (
@@ -564,6 +642,35 @@ export default function DashboardPage() {
         onClose={() => setIsUploadModalOpen(false)}
         onSuccess={handleUploadSuccess}
       />
+
+      {selectedBatchIds.length > 0 && (
+        <div className="bulk-actions-floating-bar" aria-live="polite">
+          <div className="bulk-actions-info">
+            <span className="bulk-count-badge">⚡ {selectedBatchIds.length} Batches Selected</span>
+            <button type="button" className="btn-link-clear" onClick={clearBatchSelection}>
+              Clear Selection
+            </button>
+          </div>
+          <div className="bulk-actions-btns">
+            <button
+              type="button"
+              className="btn-bulk-action btn-bulk-start"
+              onClick={handleBulkStartSelected}
+              disabled={isBulkStarting || isBulkApproving}
+            >
+              {isBulkStarting ? 'Starting...' : '⚡ Start Selected Batches'}
+            </button>
+            <button
+              type="button"
+              className="btn-bulk-action btn-bulk-approve"
+              onClick={handleBulkApproveSelected}
+              disabled={isBulkStarting || isBulkApproving}
+            >
+              {isBulkApproving ? 'Approving...' : '✓ Approve Selected Batches'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

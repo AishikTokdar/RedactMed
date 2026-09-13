@@ -186,7 +186,7 @@ export default function ReviewPage() {
     pushUnsavedChangesToast()
   }, [hasRedactedEdits, pushUnsavedChangesToast])
 
-  const handleSaveRedacted = () => {
+  const handleSaveRedacted = useCallback(() => {
     if (!noteDetail || !noteDetail.approved || !hasRedactedEdits || approveMutation.isPending) return
     approveMutation.mutate(
       {
@@ -199,13 +199,59 @@ export default function ReviewPage() {
         },
       },
     )
-  }
+  }, [approveMutation, editableRedactedText, hasRedactedEdits, noteDetail])
 
-  const handleUndoRedacted = () => {
+  const handleUndoRedacted = useCallback(() => {
     if (!noteDetail || approveMutation.isPending || !hasRedactedEdits) return
     setEditableRedactedText(noteDetail.redacted_text)
     setIsEditingRedacted(false)
-  }
+  }, [approveMutation.isPending, hasRedactedEdits, noteDetail])
+
+  const handleToggleApprove = useCallback(() => {
+    if (!noteDetail || approveMutation.isPending) return
+    if (noteDetail.approved && hasRedactedEdits) {
+      handleSaveRedacted()
+    } else {
+      approveMutation.mutate({
+        approved: !noteDetail.approved,
+        redacted_text: editableRedactedText,
+      })
+    }
+  }, [noteDetail, approveMutation, hasRedactedEdits, handleSaveRedacted, editableRedactedText])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl as HTMLElement).isContentEditable)
+
+      if (isInput) return
+
+      if (e.key === 'ArrowLeft' || e.key === 'Left') {
+        if (hasPrev && notes[currentIdx - 1]?.note_id) {
+          e.preventDefault()
+          goToNote(notes[currentIdx - 1].note_id)
+        }
+      } else if (e.key === 'ArrowRight' || e.key === 'Right') {
+        if (hasNext && notes[currentIdx + 1]?.note_id) {
+          e.preventDefault()
+          goToNote(notes[currentIdx + 1].note_id)
+        }
+      } else if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault()
+        handleToggleApprove()
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault()
+        setIsEditingRedacted(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentIdx, goToNote, handleToggleApprove, hasNext, hasPrev, notes])
 
   if (!batchId) {
     return <div className="review-page"><div className="error-state">No batch selected</div></div>
@@ -310,6 +356,12 @@ export default function ReviewPage() {
                   Next &rarr;
                 </button>
                 <span className="toolbar-position">{currentIdx + 1} of {totalNotes}</span>
+
+                <div className="hotkeys-hint-bar" title="Keyboard Shortcuts for Fast Review">
+                  <span className="hotkey-badge"><kbd>A</kbd> Approve</span>
+                  <span className="hotkey-badge"><kbd>E</kbd> Edit</span>
+                  <span className="hotkey-badge"><kbd>←</kbd><kbd>→</kbd> Navigate</span>
+                </div>
               </div>
               <div className="toolbar-right">
                 {noteDetail.needs_review && <span className="review-flag">Needs Review</span>}

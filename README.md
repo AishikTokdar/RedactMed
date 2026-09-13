@@ -53,7 +53,7 @@ Medical research teams, hospitals, and clinical data processors must sanitize cl
 
 - 🧠 **Context-Aware AI Entity Detection**: Leverages Claude Sonnet 4.5 via Amazon Bedrock to evaluate language semantics, detecting all 18 HIPAA identifier categories (names, dates, geographic data, IDs, contact details, etc.) while preserving surrounding medical context.
 - ⚡ **Scalable Asynchronous Architecture**: Decouples batch upload, queue management, and model inference via Amazon S3, SQS, and AWS Lambda, allowing seamless processing of thousands of documents concurrently.
-- 👤 **Human-in-the-Loop (HITL) Review Dashboard**: Provides a side-by-side Diff Viewer comparing original and redacted text, allowing reviewers to modify entity tags, insert manual redactions, and approve notes before release.
+- 👤 **Human-in-the-Loop (HITL) Review Dashboard**: Provides a side-by-side Diff Viewer comparing original and redacted text, reviewer keyboard hotkeys (A = Approve, E = Edit, Left/Right = Navigate), and batch selection checkboxes for bulk multi-batch operations.
 - 📤 **Direct Drag-and-Drop Batch Upload**: Upload `.txt` clinical notes, multiple files, or `.zip` archives directly from your browser to Amazon S3 via Presigned PUT URLs with client-side zero-latency archive extraction.
 - 🔄 **Resilient Batch State Management**: Uses DynamoDB atomic counters and Dead-Letter Queues (DLQ) so failed items can be re-driven individually without restarting entire job batches.
 - 💰 **Cost Optimization with Prompt Caching**: Utilizes Amazon Bedrock prompt caching for repeated system instructions and few-shot examples, reducing input token costs by up to 27%+.
@@ -821,6 +821,22 @@ Upon signing in, you land on the **Batches Overview** screen:
 - If transient API rate limits occur, isolated failed notes display a red `FAILED` badge.
 - View DLQ stats in the batch details pane.
 - Click **Redrive Failed Notes** on the batch header to re-queue failed notes from the DLQ for processing.
+
+#### 7. Reviewer Keyboard Hotkeys (Power-User Productivity)
+RedactMed includes single-key keyboard hotkeys to accelerate clinical note review:
+- **`A`**: Save & Approve the currently selected note (or save redaction edits).
+- **`E`**: Enable Edit Mode to modify redacted text inline.
+- **`←` (Left Arrow)**: Navigate to the previous clinical note in the batch.
+- **`→` (Right Arrow)**: Navigate to the next clinical note in the batch.
+
+> 💡 **Focus Safety Guard**: Hotkeys automatically disarm when typing inside text inputs, textareas, or editable elements so letter inputs are never interrupted.
+
+#### 8. Multi-Batch Selection Checkboxes & Bulk Actions
+- Check the selection checkboxes next to batches in the sidebar or main overview list.
+- Use the **Select All** header checkbox to toggle selection across all listed batches on the page.
+- When batches are selected, a floating **Bulk Actions Bar** allows reviewers to:
+  - **Start Selected Batches**: Trigger AI de-identification across multiple batches concurrently.
+  - **Approve Selected Batches**: Perform bulk mass-approval across all processed notes in all selected batches.
 
 ---
 
