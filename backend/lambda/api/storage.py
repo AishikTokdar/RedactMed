@@ -252,3 +252,25 @@ def list_approved_note_ids(batch_id: str) -> set[str]:
             approved_note_ids.add(note_id)
 
     return approved_note_ids
+
+
+def generate_presigned_upload_url(key: str, content_type: str = "text/plain", expires_in: int = 900) -> str:
+    """Generate an S3 presigned PUT URL for browser uploads.
+
+    Args:
+        key: S3 object key.
+        content_type: MIME content type for the object.
+        expires_in: Expiration time in seconds (default 900s / 15 min).
+
+    Returns:
+        Presigned upload URL string.
+    """
+    return s3.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": BUCKET_NAME,
+            "Key": key,
+            "ContentType": content_type,
+        },
+        ExpiresIn=expires_in,
+    )

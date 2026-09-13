@@ -81,6 +81,18 @@ def list_batches_route() -> Response:
     return _invoke(handlers.list_batches)
 
 
+@app.post("/batches/upload-urls")
+def request_upload_urls_route() -> Response:
+    """POST /batches/upload-urls - Generate presigned S3 upload URLs."""
+    return _invoke(handlers.request_upload_urls)
+
+
+@app.post("/batches/upload")
+def upload_batch_files_route() -> Response:
+    """POST /batches/upload - Direct upload text files for a batch."""
+    return _invoke(handlers.upload_batch_files)
+
+
 @app.get("/batches/<batch_id>")
 def get_batch_route(batch_id: str) -> Response:
     """GET /batches/{batch_id} - Get batch details."""

@@ -16,6 +16,7 @@ import {
   type Batch,
   type BatchesQueryData,
 } from '../api/client'
+import UploadBatchModal from '../components/UploadBatchModal'
 import './DashboardPage.css'
 
 type BatchStatusKey =
@@ -70,6 +71,7 @@ export default function DashboardPage() {
   const [startError, setStartError] = useState('')
   const [approvingAll, setApprovingAll] = useState(false)
   const [retrying, setRetrying] = useState(false)
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [toasts, setToasts] = useState<DashboardToast[]>([])
   const toastTimeoutIdsRef = useRef<Array<ReturnType<typeof window.setTimeout>>>([])
 
@@ -84,6 +86,12 @@ export default function DashboardPage() {
 
     toastTimeoutIdsRef.current.push(timeoutId)
   }, [])
+
+  const handleUploadSuccess = useCallback((newBatchId: string, noteCount: number) => {
+    queryClient.invalidateQueries({ queryKey: ['batches'] })
+    setSelectedBatchId(newBatchId)
+    pushToast(`Batch ${newBatchId} created with ${noteCount} note${noteCount === 1 ? '' : 's'}. Ready for de-identification!`, 'success')
+  }, [queryClient, pushToast])
 
   useEffect(() => {
     return () => {
@@ -253,10 +261,21 @@ export default function DashboardPage() {
       <aside className="dashboard-sidebar">
         <div className="sidebar-section">
           <button
+            className="sidebar-item sidebar-item-upload-action"
+            onClick={() => setIsUploadModalOpen(true)}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>Upload New Batch</span>
+          </button>
+          <button
             className={`sidebar-item sidebar-item-new-batch ${!selectedBatchId ? 'active' : ''}`}
             onClick={() => setSelectedBatchId(null)}
           >
-            <span>Dashboard</span>
+            <span>Dashboard Overview</span>
           </button>
         </div>
 
@@ -303,6 +322,20 @@ export default function DashboardPage() {
       <main className="dashboard-main">
         {!selectedBatchId ? (
           <div className="upload-panel directions-panel">
+            <div className="dashboard-upload-banner">
+              <div className="banner-info">
+                <h3>⚡ Drag & Drop Direct Batch Upload</h3>
+                <p>Upload clinical <code>.txt</code> notes, multiple files, or <code>.zip</code> archives directly from your browser to S3.</p>
+              </div>
+              <button
+                type="button"
+                className="btn-banner-upload"
+                onClick={() => setIsUploadModalOpen(true)}
+              >
+                Upload Document Batch
+              </button>
+            </div>
+
             <h2 className="panel-title">How To Use This Dashboard</h2>
             <p className="panel-description">
               Use one CLI command to create a batch folder and upload notes in your existing deployed bucket. Metadata is created automatically when you click Start De-identification.
@@ -526,6 +559,11 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+      <UploadBatchModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={handleUploadSuccess}
+      />
     </div>
   )
 }

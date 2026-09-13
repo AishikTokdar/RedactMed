@@ -188,3 +188,68 @@ export async function approveAllNotes(batchId: string): Promise<ApproveAllRespon
 export async function redriveBatch(batchId: string): Promise<{ batch_id: string; redriven_count: number; status: string }> {
   return fetchApi(`/batches/${batchId}/redrive`, { method: 'POST' })
 }
+
+export interface PresignedUrlItem {
+  filename: string
+  key: string
+  upload_url: string
+}
+
+export interface RequestUploadUrlsResponse {
+  batch_id: string
+  urls: PresignedUrlItem[]
+  input_count: number
+}
+
+export interface DirectUploadResponse {
+  batch_id: string
+  uploaded_count: number
+  status: string
+}
+
+/** Requests S3 presigned upload URLs for batch document files */
+export async function requestUploadUrls(
+  batchId: string | undefined,
+  files: Array<{ filename: string; content_type?: string }>
+): Promise<RequestUploadUrlsResponse> {
+  return fetchApi('/batches/upload-urls', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(batchId ? { batch_id: batchId } : {}),
+      files,
+    }),
+  })
+}
+
+/** Uploads a file directly to S3 using a presigned PUT URL */
+export async function uploadFileToPresignedUrl(
+  uploadUrl: string,
+  file: File | Blob,
+  contentType = 'text/plain'
+): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': contentType,
+    },
+    body: file,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload file (${response.status})`)
+  }
+}
+
+/** Fallback direct content upload for batch text files */
+export async function directUploadBatchFiles(
+  batchId: string | undefined,
+  files: Array<{ filename: string; content: string }>
+): Promise<DirectUploadResponse> {
+  return fetchApi('/batches/upload', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(batchId ? { batch_id: batchId } : {}),
+      files,
+    }),
+  })
+}

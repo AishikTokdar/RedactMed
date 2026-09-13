@@ -54,6 +54,7 @@ Medical research teams, hospitals, and clinical data processors must sanitize cl
 - 🧠 **Context-Aware AI Entity Detection**: Leverages Claude Sonnet 4.5 via Amazon Bedrock to evaluate language semantics, detecting all 18 HIPAA identifier categories (names, dates, geographic data, IDs, contact details, etc.) while preserving surrounding medical context.
 - ⚡ **Scalable Asynchronous Architecture**: Decouples batch upload, queue management, and model inference via Amazon S3, SQS, and AWS Lambda, allowing seamless processing of thousands of documents concurrently.
 - 👤 **Human-in-the-Loop (HITL) Review Dashboard**: Provides a side-by-side Diff Viewer comparing original and redacted text, allowing reviewers to modify entity tags, insert manual redactions, and approve notes before release.
+- 📤 **Direct Drag-and-Drop Batch Upload**: Upload `.txt` clinical notes, multiple files, or `.zip` archives directly from your browser to Amazon S3 via Presigned PUT URLs with client-side zero-latency archive extraction.
 - 🔄 **Resilient Batch State Management**: Uses DynamoDB atomic counters and Dead-Letter Queues (DLQ) so failed items can be re-driven individually without restarting entire job batches.
 - 💰 **Cost Optimization with Prompt Caching**: Utilizes Amazon Bedrock prompt caching for repeated system instructions and few-shot examples, reducing input token costs by up to 27%+.
 
@@ -155,6 +156,7 @@ What sets **RedactMed** apart from traditional de-identification tools and gener
 - 🧠 **Contextual Semantic Intelligence over Static Rules**: Legacy de-identification relies on rigid regex or named-entity recognition (NER) models that frequently misclassify clinical vocabulary (e.g., mistaking medical acronyms or facility names for patient names). RedactMed uses Claude Sonnet 4.5 via Bedrock to understand full sentence semantics, achieving near-perfect precision across all 18 HIPAA entity types without stripping vital clinical meaning.
 - ⚡ **Decoupled Serverless Micro-Task Architecture**: Unlike monolithic processing pipelines that crash or hang when a single document fails, RedactMed breaks batch uploads into atomic SQS tasks processed by event-driven ARM64 Lambda functions with Dead-Letter Queue (DLQ) isolation, enabling zero-downtime batch resiliency.
 - 👤 **Integrated Human-in-the-Loop (HITL) Governance**: Provides a full audit trail and real-time visual Diff Viewer dashboard where clinical reviewers inspect original vs. redacted text, modify entity tags, add manual overrides, and approve notes before release into output S3 storage.
+- 📤 **Browser-to-S3 Presigned Upload Architecture**: Features a zero-overhead upload modal that unpacks `.zip` archives in browser memory using `JSZip` and uploads files directly to S3 via presigned PUT URLs, bypassing API payload and Lambda execution limits.
 - 💰 **Bedrock Prompt Caching Integration**: Pioneer implementation of prompt caching on Bedrock for clinical data processing, storing fixed system instructions and few-shot examples in memory to cut LLM token ingestion costs by 27.6%+.
 - 🛠️ **Multi-IaC Portability & Zero-Cost Infrastructure**: Supports both **AWS CDK** and **Terraform**, engineered to run 100% within the AWS Free Tier for baseline compute, storage, and database operations.
 
@@ -722,7 +724,15 @@ To quickly test the platform using these included sample files:
 
 #### Uploading Custom Batches
 
-##### Option A: Using the Automated Batch Helper Script (Recommended)
+##### Option A: Direct Drag-and-Drop Upload in Reviewer Dashboard (Recommended)
+
+1. Open the RedactMed Web Dashboard.
+2. Click **Upload New Batch** in the sidebar or click **Upload Document Batch** on the main overview banner.
+3. Drag and drop individual `.txt` clinical notes, multiple files, or `.zip` archives containing clinical notes into the upload modal.
+4. The dashboard automatically unpacks `.zip` archives on the fly in browser memory and uploads documents directly to Amazon S3 via secure Presigned PUT URLs.
+5. Click **Create & Upload Batch**. The batch is initialized on S3 and DynamoDB with status `Ready to Process` and immediately opens on your dashboard.
+
+##### Option B: Using the Automated Batch Helper Script
 
 Upload a local directory of clinical text files (`.txt`):
 
@@ -736,7 +746,7 @@ To add notes to an existing batch ID:
 ./scripts/create_batch.sh --batch-id "batch-20260801-001" --notes-dir /path/to/clinical_notes
 ```
 
-#### Option B: Manual AWS CLI S3 Upload
+##### Option C: Manual AWS CLI S3 Upload
 
 ```bash
 # Retrieve bucket name from stack outputs

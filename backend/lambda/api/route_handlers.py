@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import boto3
 
 import storage
-from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at, list_all_batches, list_notes_from_dynamo, update_note_approved_status
+from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at, list_all_batches, list_notes_from_dynamo, update_note_approved_status, initialize_batch_stats
 from api_logger import logger
 
 lambda_client = boto3.client("lambda")
@@ -558,4 +558,106 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         "batch_id": batch_id,
         "redriven_count": 0,
         "status": "partially-completed",
+    }
+
+
+def request_upload_urls(params: dict, body: dict, query: dict) -> tuple[int, dict]:
+    """POST /batches/upload-urls - Generate presigned S3 upload URLs for a batch.
+
+    Args:
+        params: URL path parameters.
+        body: Dict with optional 'batch_id' and required 'files' list of {filename, content_type}.
+        query: Query string parameters.
+
+    Returns:
+        Tuple of (status_code, response_dict).
+    """
+    from datetime import datetime, timezone
+    import re
+
+    raw_batch_id = body.get("batch_id") or f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    batch_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(raw_batch_id))
+    if not batch_id:
+        batch_id = f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+
+    files = body.get("files", [])
+    if not isinstance(files, list) or not files:
+        return 400, {"error": "Missing or empty 'files' array in request body"}
+
+    results = []
+    for item in files:
+        if not isinstance(item, dict) or not item.get("filename"):
+            continue
+        raw_name = str(item["filename"]).strip().replace("\\", "/").rsplit("/", 1)[-1]
+        clean_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", raw_name)
+        if not clean_name:
+            continue
+        content_type = item.get("content_type") or "text/plain"
+        s3_key = f"{batch_id}/input/{clean_name}"
+        upload_url = storage.generate_presigned_upload_url(s3_key, content_type=content_type)
+        results.append({
+            "filename": clean_name,
+            "key": s3_key,
+            "upload_url": upload_url,
+        })
+
+    if not results:
+        return 400, {"error": "No valid filenames provided"}
+
+    # Initialize batch stats in DynamoDB with input count
+    initialize_batch_stats(batch_id, len(results))
+
+    return 200, {
+        "batch_id": batch_id,
+        "urls": results,
+        "input_count": len(results),
+    }
+
+
+def upload_batch_files(params: dict, body: dict, query: dict) -> tuple[int, dict]:
+    """POST /batches/upload - Direct upload text content files for a batch.
+
+    Args:
+        params: URL path parameters.
+        body: Dict with optional 'batch_id' and required 'files' list of {filename, content}.
+        query: Query string parameters.
+
+    Returns:
+        Tuple of (status_code, response_dict).
+    """
+    from datetime import datetime, timezone
+    import re
+
+    raw_batch_id = body.get("batch_id") or f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    batch_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(raw_batch_id))
+    if not batch_id:
+        batch_id = f"batch-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+
+    files = body.get("files", [])
+    if not isinstance(files, list) or not files:
+        return 400, {"error": "Missing or empty 'files' array in request body"}
+
+    uploaded_count = 0
+    for item in files:
+        if not isinstance(item, dict) or not item.get("filename"):
+            continue
+        raw_name = str(item["filename"]).strip().replace("\\", "/").rsplit("/", 1)[-1]
+        clean_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", raw_name)
+        if not clean_name:
+            continue
+        content = item.get("content", "")
+        s3_key = f"{batch_id}/input/{clean_name}"
+        storage.put_text(s3_key, content)
+        uploaded_count += 1
+
+    if uploaded_count == 0:
+        return 400, {"error": "No valid files uploaded"}
+
+    # Initialize batch stats in DynamoDB with uploaded count
+    initialize_batch_stats(batch_id, uploaded_count)
+
+    return 200, {
+        "batch_id": batch_id,
+        "uploaded_count": uploaded_count,
+        "status": "ready",
     }
