@@ -121,6 +121,10 @@ class RedactionFormatter:
         "biometric_identifier": "BIOMETRIC",
         "photographic_image": "PHOTO",
         "age": "AGE",
+        "aadhaar_number": "AADHAAR",
+        "pan_number": "PAN",
+        "abha_id": "ABHA",
+        "national_id": "NATIONAL_ID",
         "other": "OTHER",
     }
     

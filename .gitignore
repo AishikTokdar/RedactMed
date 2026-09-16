@@ -41,3 +41,7 @@ response.json
 # Virtual env
 venv/
 .venv/
+
+# Local git directory override
+.git_local/
+

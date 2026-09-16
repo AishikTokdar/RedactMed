@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from pydantic.dataclasses import dataclass
 
 # HIPAA 18 Identifiers for Protected Health Information (PHI)
-DEFAULT_PII_TYPES = [
+HIPAA_PII_TYPES = [
     "person_name",                          
     "address",        
     "date", 
@@ -27,6 +27,28 @@ DEFAULT_PII_TYPES = [
     "photographic_image",            
     "other",
 ]
+
+# Indian Digital Personal Data Protection (DPDP) & ABDM Identifiers
+DPDP_INDIA_PII_TYPES = [
+    *HIPAA_PII_TYPES,
+    "aadhaar_number",
+    "pan_number",
+    "abha_id",
+]
+
+# European Union General Data Protection Regulation (GDPR) / UK NHS Identifiers
+GDPR_EU_PII_TYPES = [
+    *HIPAA_PII_TYPES,
+    "national_id",
+]
+
+DEFAULT_PII_TYPES = HIPAA_PII_TYPES.copy()
+
+JURISDICTION_PII_TYPES: dict[str, list[str]] = {
+    "HIPAA": HIPAA_PII_TYPES,
+    "DPDP_INDIA": DPDP_INDIA_PII_TYPES,
+    "GDPR_EU": GDPR_EU_PII_TYPES,
+}
 
 # Short codes for compact LLM output (reduces output tokens by ~60-70%)
 SHORT_TO_FULL_TYPE: dict[str, str] = {
@@ -48,6 +70,10 @@ SHORT_TO_FULL_TYPE: dict[str, str] = {
     "bio": "biometric_identifier",
     "img": "photographic_image",
     "oth": "other",
+    "adh": "aadhaar_number",
+    "pan": "pan_number",
+    "abh": "abha_id",
+    "nid": "national_id",
 }
 
 FULL_TO_SHORT_TYPE: dict[str, str] = {v: k for k, v in SHORT_TO_FULL_TYPE.items()}
@@ -91,6 +117,10 @@ class CompactAgentResponse(BaseModel):
     bio: list[str] = Field(default_factory=list, description="Biometrics")
     img: list[str] = Field(default_factory=list, description="Photos")
     oth: list[str] = Field(default_factory=list, description="Other PHI")
+    adh: list[str] = Field(default_factory=list, description="Aadhaar numbers")
+    pan: list[str] = Field(default_factory=list, description="PAN numbers")
+    abh: list[str] = Field(default_factory=list, description="ABHA IDs")
+    nid: list[str] = Field(default_factory=list, description="National / Passport IDs")
 
 
 def expand_compact_response(compact: CompactAgentResponse) -> AgentResponse:
@@ -116,8 +146,12 @@ class DetectionParameters:
 
     pii_types: list[str] = field(default_factory=lambda: DEFAULT_PII_TYPES.copy())
     max_entities: int | None = 200
+    jurisdiction: str = "HIPAA"
 
     def __post_init__(self) -> None:
+        canonical_jurisdiction = self.jurisdiction.upper()
+        if canonical_jurisdiction in JURISDICTION_PII_TYPES and self.pii_types == DEFAULT_PII_TYPES:
+            self.pii_types = JURISDICTION_PII_TYPES[canonical_jurisdiction].copy()
         self.pii_types = self._normalize_types(self.pii_types)
         if self.max_entities is not None and self.max_entities < 1:
             raise ValueError("max_entities must be >= 1")

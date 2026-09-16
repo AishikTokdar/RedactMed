@@ -35,10 +35,11 @@
   - [Step 2: Ingesting Clinical Notes &amp; Sample Testing Data](#step-2-ingesting-clinical-notes--sample-testing-data)
   - [Step 3: Executing AI Redaction Pipelines](#step-3-executing-ai-redaction-pipelines)
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
-  - [Step 5: Generating Synthetic Test Data](#step-5-generating-synthetic-test-data)
-  - [Step 6: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-6-handling-failures--dead-letter-queue-dlq-redrive)
-  - [Step 7: Running Unit &amp; Integration Test Suites](#step-7-running-unit--integration-test-suites)
-  - [Step 8: Standalone Python CLI &amp; Local Processing](#step-8-standalone-python-cli--local-processing)
+  - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
+  - [Step 6: Generating Synthetic Test Data](#step-6-generating-synthetic-test-data)
+  - [Step 7: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-7-handling-failures--dead-letter-queue-dlq-redrive)
+  - [Step 8: Running Unit &amp; Integration Test Suites](#step-8-running-unit--integration-test-suites)
+  - [Step 9: Standalone Python CLI &amp; Local Processing](#step-9-standalone-python-cli--local-processing)
 - [Cost Drivers &amp; Prompt Caching Optimization](#cost-drivers--prompt-caching-optimization)
 - [Credits &amp; License](#credits--license)
 - [Disclaimers](#disclaimers)
@@ -56,6 +57,7 @@ Medical research teams, hospitals, and clinical data processors must sanitize cl
 - 👤 **Human-in-the-Loop (HITL) Review Dashboard**: Provides a side-by-side Diff Viewer comparing original and redacted text, reviewer keyboard hotkeys (A = Approve, E = Edit, Left/Right = Navigate), and batch selection checkboxes for bulk multi-batch operations.
 - 📤 **Direct Drag-and-Drop Batch Upload**: Upload `.txt` clinical notes, multiple files, or `.zip` archives directly from your browser to Amazon S3 via Presigned PUT URLs with client-side zero-latency archive extraction.
 - 🔄 **Resilient Batch State Management**: Uses DynamoDB atomic counters and Dead-Letter Queues (DLQ) so failed items can be re-driven individually without restarting entire job batches.
+- 🌐 **Multi-Jurisdiction Policy Presets**: Supports US HIPAA Safe Harbor (18 PHI types), India DPDP Act / ABDM (Aadhaar, PAN, ABHA IDs, state doctor registrations), and EU GDPR standards with tailored agent prompts.
 - 💰 **Cost Optimization with Prompt Caching**: Utilizes Amazon Bedrock prompt caching for repeated system instructions and few-shot examples, reducing input token costs by up to 27%+.
 
 ---
@@ -840,7 +842,30 @@ RedactMed includes single-key keyboard hotkeys to accelerate clinical note revie
 
 ---
 
-### Step 5: Generating Synthetic Test Data
+### Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)
+
+RedactMed provides built-in compliance presets adapted to international healthcare regulations:
+
+| Regulation / Preset | Target Geographies | Key Specific Identifiers Covered | Algorithmic Checksums & Standards |
+| :--- | :--- | :--- | :--- |
+| **HIPAA Safe Harbor** | United States | 18 statutory PHI categories (Names, Dates, SSNs, MRNs, Phone, Email, IP, Biometrics, Addresses) | US 45 CFR § 164.514; relative date shifting, age >= 89 aggregation |
+| **DPDP Act / ABDM** | India | 12-digit Aadhaar, PAN (Permanent Account Number), ABHA Health ID, Ayushman Bharat registry, MCI/SMC doctor registration, Indian mobile (+91) | Verhoeff algorithm verification for 12-digit Aadhaar; alphanumeric PAN regex validation |
+| **EU GDPR / NHS** | European Union / UK | Article 9 Special Category Health Data, UK NHS numbers, EU National Insurance / Identity numbers, European IBANs | NHS 10-digit modulus 11 checksum calculation; strict pseudonymization guidelines |
+
+#### Specifying Compliance Jurisdiction
+
+Via the Python CLI or REST API:
+```bash
+# Ingest batch with Indian DPDP Act preset
+curl -X POST "$API_URL/batches/upload-urls" \
+  -H "Authorization: Bearer <Token>" \
+  -H "Content-Type: application/json" \
+  -d '{"batch_id": "batch-delhi-01", "jurisdiction": "dpdp", "files": [{"filename": "discharge_summary.txt"}]}'
+```
+
+---
+
+### Step 6: Generating Synthetic Test Data
 
 RedactMed includes a dedicated synthetic data generator tooling package located in [`tooling/synthetic-data-generator`](./tooling/synthetic-data-generator/) for testing and benchmarking pipelines without using real patient data:
 
@@ -856,7 +881,7 @@ Then upload the generated sample notes using `./scripts/create_batch.sh --notes-
 
 ---
 
-### Step 6: Handling Failures & Dead-Letter Queue (DLQ) Redrive
+### Step 7: Handling Failures & Dead-Letter Queue (DLQ) Redrive
 
 If any clinical note encounters transient model rate limits, malformed formatting, or network timeouts:
 
@@ -871,7 +896,7 @@ curl -X POST "$API_URL/batches/$BATCH_ID/redrive" \
 
 ---
 
-### Step 7: Running Unit & Integration Test Suites
+### Step 8: Running Unit & Integration Test Suites
 
 RedactMed includes comprehensive automated test coverage across backend services, agents, Lambda event handlers, and synthetic data tooling:
 
@@ -901,7 +926,7 @@ cd tooling/synthetic-data-generator && pytest
 
 ---
 
-### Step 8: Standalone Python CLI & Local Processing
+### Step 9: Standalone Python CLI & Local Processing
 
 For local development, bulk batch evaluation, or offline environments, RedactMed includes a dedicated CLI tool in [`tooling/cli`](./tooling/cli/) to run de-identification directly without deploying AWS cloud infrastructure:
 

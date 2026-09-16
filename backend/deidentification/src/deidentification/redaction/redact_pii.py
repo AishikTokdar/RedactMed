@@ -31,6 +31,10 @@ PII_TYPE_ORDER: list[str] = [
     # Tier 1: Long, structured identifiers (contain substrings, never are substrings)
     "medical_record_number",           # UUIDs, very long
     "ssn",                             # 9 digits, structured
+    "aadhaar_number",                  # 12 digits, Indian national ID
+    "pan_number",                      # 10 chars, Indian tax ID
+    "abha_id",                         # 14 digits, Indian ABHA health ID
+    "national_id",                     # NHS, national registration
     "device_identifier",               # 14+ digits
     "vehicle_identifier",              # VINs (17 chars), plates
     "health_plan_beneficiary_number",  # AETNA-681277021 contains company name

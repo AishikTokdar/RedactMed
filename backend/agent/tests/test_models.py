@@ -59,3 +59,30 @@ class TestExpandCompactResponse:
         assert len(result.pii_entities) == len(SHORT_TO_FULL_TYPE)
         result_types = {e.type for e in result.pii_entities}
         assert result_types == set(SHORT_TO_FULL_TYPE.values())
+
+
+class TestDetectionParameters:
+    """Tests for DetectionParameters and multi-jurisdiction presets."""
+
+    def test_default_jurisdiction_hipaa(self):
+        from agent.models import DetectionParameters, HIPAA_PII_TYPES
+        params = DetectionParameters()
+        assert params.jurisdiction == "HIPAA"
+        assert set(params.pii_types) == set(HIPAA_PII_TYPES)
+
+    def test_dpdp_india_jurisdiction(self):
+        from agent.models import DetectionParameters, DPDP_INDIA_PII_TYPES
+        params = DetectionParameters(jurisdiction="DPDP_INDIA")
+        assert params.jurisdiction == "DPDP_INDIA"
+        assert "aadhaar_number" in params.pii_types
+        assert "pan_number" in params.pii_types
+        assert "abha_id" in params.pii_types
+        assert set(params.pii_types) == set(DPDP_INDIA_PII_TYPES)
+
+    def test_gdpr_eu_jurisdiction(self):
+        from agent.models import DetectionParameters, GDPR_EU_PII_TYPES
+        params = DetectionParameters(jurisdiction="GDPR_EU")
+        assert params.jurisdiction == "GDPR_EU"
+        assert "national_id" in params.pii_types
+        assert set(params.pii_types) == set(GDPR_EU_PII_TYPES)
+
