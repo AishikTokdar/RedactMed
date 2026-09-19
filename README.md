@@ -36,10 +36,11 @@
   - [Step 3: Executing AI Redaction Pipelines](#step-3-executing-ai-redaction-pipelines)
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
-  - [Step 6: Generating Synthetic Test Data](#step-6-generating-synthetic-test-data)
-  - [Step 7: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-7-handling-failures--dead-letter-queue-dlq-redrive)
-  - [Step 8: Running Unit &amp; Integration Test Suites](#step-8-running-unit--integration-test-suites)
-  - [Step 9: Standalone Python CLI &amp; Local Processing](#step-9-standalone-python-cli--local-processing)
+  - [Step 6: Longitudinal Date Shifting Engine](#step-6-longitudinal-date-shifting-engine)
+  - [Step 7: Generating Synthetic Test Data](#step-7-generating-synthetic-test-data)
+  - [Step 8: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-8-handling-failures--dead-letter-queue-dlq-redrive)
+  - [Step 9: Running Unit &amp; Integration Test Suites](#step-9-running-unit--integration-test-suites)
+  - [Step 10: Standalone Python CLI &amp; Local Processing](#step-10-standalone-python-cli--local-processing)
 - [Cost Drivers &amp; Prompt Caching Optimization](#cost-drivers--prompt-caching-optimization)
 - [Credits &amp; License](#credits--license)
 - [Disclaimers](#disclaimers)
@@ -58,6 +59,7 @@ Medical research teams, hospitals, and clinical data processors must sanitize cl
 - 📤 **Direct Drag-and-Drop Batch Upload**: Upload `.txt` clinical notes, multiple files, or `.zip` archives directly from your browser to Amazon S3 via Presigned PUT URLs with client-side zero-latency archive extraction.
 - 🔄 **Resilient Batch State Management**: Uses DynamoDB atomic counters and Dead-Letter Queues (DLQ) so failed items can be re-driven individually without restarting entire job batches.
 - 🌐 **Multi-Jurisdiction Policy Presets**: Supports US HIPAA Safe Harbor (18 PHI types), India DPDP Act / ABDM (Aadhaar, PAN, ABHA IDs, state doctor registrations), and EU GDPR standards with tailored agent prompts.
+- ⏱️ **Longitudinal Date Shifting**: Statistical date perturbation engine preserving clinical intervals between diagnoses, procedures, and prescriptions while shifting absolute calendar dates deterministically per patient.
 - 💰 **Cost Optimization with Prompt Caching**: Utilizes Amazon Bedrock prompt caching for repeated system instructions and few-shot examples, reducing input token costs by up to 27%+.
 
 ---
@@ -865,7 +867,23 @@ curl -X POST "$API_URL/batches/upload-urls" \
 
 ---
 
-### Step 6: Generating Synthetic Test Data
+### Step 6: Longitudinal Date Shifting Engine
+
+For secondary clinical research, epidemiology, and longitudinal cohort studies, outright blanking of dates and patient demographics destroys research utility (e.g., measuring disease progression or survival curves). RedactMed implements a mathematical date shifting engine to preserve research value while eliminating re-identification risk:
+
+#### 1. Longitudinal Date Shifting Engine (`backend/deidentification/redaction/date_shifting.py`)
+
+- **Patient-Level Deterministic Offset**:
+  $$\text{OffsetDays} = (\text{HMAC-SHA256}(\text{PatientID}, \text{Salt}) \bmod (\text{MaxOffset} - \text{MinOffset})) + \text{MinOffset}$$
+  All dates belonging to the same patient (admission, discharge, lab orders, surgical encounters, prescription refills) are shifted by the *exact same random offset* (default: 30 to 365 days).
+- **Interval Preservation**: The exact temporal distance between clinical events is 100% preserved (e.g., 5 days between surgery and discharge remains exactly 5 days).
+- **Day-of-Week Alignment**: Optional day-of-week preservation rounds the offset to multiples of 7, ensuring weekends and weekdays do not artificially flip.
+- **Geriatric Patient Censoring**: Consistent with HIPAA guidelines, any calculated patient age $\ge 89$ is automatically censored to `[AGE > 89]`.
+- **Calendar Boundary Handling**: Automatically handles leap years (e.g., Feb 29 transitions) and month end dates without date arithmetic overflow.
+
+---
+
+### Step 7: Generating Synthetic Test Data
 
 RedactMed includes a dedicated synthetic data generator tooling package located in [`tooling/synthetic-data-generator`](./tooling/synthetic-data-generator/) for testing and benchmarking pipelines without using real patient data:
 
@@ -881,7 +899,7 @@ Then upload the generated sample notes using `./scripts/create_batch.sh --notes-
 
 ---
 
-### Step 7: Handling Failures & Dead-Letter Queue (DLQ) Redrive
+### Step 8: Handling Failures & Dead-Letter Queue (DLQ) Redrive
 
 If any clinical note encounters transient model rate limits, malformed formatting, or network timeouts:
 
@@ -896,7 +914,7 @@ curl -X POST "$API_URL/batches/$BATCH_ID/redrive" \
 
 ---
 
-### Step 8: Running Unit & Integration Test Suites
+### Step 9: Running Unit & Integration Test Suites
 
 RedactMed includes comprehensive automated test coverage across backend services, agents, Lambda event handlers, and synthetic data tooling:
 
@@ -926,7 +944,7 @@ cd tooling/synthetic-data-generator && pytest
 
 ---
 
-### Step 9: Standalone Python CLI & Local Processing
+### Step 10: Standalone Python CLI & Local Processing
 
 For local development, bulk batch evaluation, or offline environments, RedactMed includes a dedicated CLI tool in [`tooling/cli`](./tooling/cli/) to run de-identification directly without deploying AWS cloud infrastructure:
 

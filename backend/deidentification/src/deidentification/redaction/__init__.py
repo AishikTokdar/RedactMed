@@ -15,6 +15,13 @@ from .redact_pii import (
     redact_text
 )
 
+from .date_shifting import (
+    DateShiftFormatter,
+    parse_clinical_date,
+    shift_date_string,
+    generate_patient_date_shift_days,
+)
+
 __all__ = [
     "DefaultFormatter",
     "RedactionFormat",
@@ -25,5 +32,10 @@ __all__ = [
     "RedactionResult",
     "process_json_file",
     "find_pii_positions",
-    "redact_text"
+    "redact_text",
+    "DateShiftFormatter",
+    "parse_clinical_date",
+    "shift_date_string",
+    "generate_patient_date_shift_days",
 ]
+
