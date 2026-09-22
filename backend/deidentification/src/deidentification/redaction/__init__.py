@@ -22,6 +22,8 @@ from .date_shifting import (
     generate_patient_date_shift_days,
 )
 
+from .surrogates import SurrogateFormatter
+
 __all__ = [
     "DefaultFormatter",
     "RedactionFormat",
@@ -37,5 +39,6 @@ __all__ = [
     "parse_clinical_date",
     "shift_date_string",
     "generate_patient_date_shift_days",
+    "SurrogateFormatter",
 ]
 

@@ -36,7 +36,7 @@
   - [Step 3: Executing AI Redaction Pipelines](#step-3-executing-ai-redaction-pipelines)
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
-  - [Step 6: Longitudinal Date Shifting Engine](#step-6-longitudinal-date-shifting-engine)
+  - [Step 6: Longitudinal Date Shifting &amp; Synthetic Surrogates Engine](#step-6-longitudinal-date-shifting--synthetic-surrogates-engine)
   - [Step 7: Generating Synthetic Test Data](#step-7-generating-synthetic-test-data)
   - [Step 8: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-8-handling-failures--dead-letter-queue-dlq-redrive)
   - [Step 9: Running Unit &amp; Integration Test Suites](#step-9-running-unit--integration-test-suites)
@@ -60,6 +60,7 @@ Medical research teams, hospitals, and clinical data processors must sanitize cl
 - 🔄 **Resilient Batch State Management**: Uses DynamoDB atomic counters and Dead-Letter Queues (DLQ) so failed items can be re-driven individually without restarting entire job batches.
 - 🌐 **Multi-Jurisdiction Policy Presets**: Supports US HIPAA Safe Harbor (18 PHI types), India DPDP Act / ABDM (Aadhaar, PAN, ABHA IDs, state doctor registrations), and EU GDPR standards with tailored agent prompts.
 - ⏱️ **Longitudinal Date Shifting**: Statistical date perturbation engine preserving clinical intervals between diagnoses, procedures, and prescriptions while shifting absolute calendar dates deterministically per patient.
+- 🎭 **Realistic Synthetic Surrogates**: Substitutes identified PHI with contextually coherent synthetic names, addresses, and institutions, preserving grammatical flow and readability for downstream clinical NLP models.
 - 💰 **Cost Optimization with Prompt Caching**: Utilizes Amazon Bedrock prompt caching for repeated system instructions and few-shot examples, reducing input token costs by up to 27%+.
 
 ---
@@ -867,9 +868,9 @@ curl -X POST "$API_URL/batches/upload-urls" \
 
 ---
 
-### Step 6: Longitudinal Date Shifting Engine
+### Step 6: Longitudinal Date Shifting & Synthetic Surrogates Engine
 
-For secondary clinical research, epidemiology, and longitudinal cohort studies, outright blanking of dates and patient demographics destroys research utility (e.g., measuring disease progression or survival curves). RedactMed implements a mathematical date shifting engine to preserve research value while eliminating re-identification risk:
+For secondary clinical research, epidemiology, and longitudinal cohort studies, outright blanking of dates and patient demographics destroys research utility (e.g., measuring disease progression or survival curves). RedactMed implements two mathematical engines to preserve research value while eliminating re-identification risk:
 
 #### 1. Longitudinal Date Shifting Engine (`backend/deidentification/redaction/date_shifting.py`)
 
@@ -880,6 +881,15 @@ For secondary clinical research, epidemiology, and longitudinal cohort studies, 
 - **Day-of-Week Alignment**: Optional day-of-week preservation rounds the offset to multiples of 7, ensuring weekends and weekdays do not artificially flip.
 - **Geriatric Patient Censoring**: Consistent with HIPAA guidelines, any calculated patient age $\ge 89$ is automatically censored to `[AGE > 89]`.
 - **Calendar Boundary Handling**: Automatically handles leap years (e.g., Feb 29 transitions) and month end dates without date arithmetic overflow.
+
+#### 2. Realistic Synthetic Surrogates (`backend/deidentification/redaction/surrogates.py`)
+
+Rather than inserting bracketed tokens (`[NAME]`, `[HOSPITAL]`), RedactMed can substitute sensitive data with grammatically and culturally coherent synthetic entities:
+- **Jurisdiction-Aware Demographics**:
+  - *HIPAA*: `James Miller`, `St. Jude Medical Center`, `Boston, MA`
+  - *DPDP*: `Aarav Sharma`, `Apollo Specialty Hospital`, `Bengaluru, Karnataka`
+  - *GDPR*: `Lukas Weber`, `Charité Hospital`, `Berlin, Germany`
+- **Reverse Surrogate Audit Mapping**: Produces a cryptographic lookup index enabling institutional data compliance officers to re-identify records in clinical trials under secure IRB oversight.
 
 ---
 
