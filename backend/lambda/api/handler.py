@@ -135,6 +135,13 @@ def approve_note_route(batch_id: str, note_id: str) -> Response:
     return _invoke(handlers.approve_note, {"batch_id": batch_id, "note_id": note_id})
 
 
+@app.get("/batches/<batch_id>/export")
+def export_batch_route(batch_id: str) -> Response:
+    """GET /batches/{batch_id}/export - Export approved batch in JSON, CSV, or ZIP."""
+    return _invoke(handlers.export_batch, {"batch_id": batch_id})
+
+
+
 @app.not_found
 def route_not_found() -> Response:
     method = app.current_event.http_method

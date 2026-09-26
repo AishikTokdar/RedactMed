@@ -562,16 +562,7 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
 
 
 def request_upload_urls(params: dict, body: dict, query: dict) -> tuple[int, dict]:
-    """POST /batches/upload-urls - Generate presigned S3 upload URLs for a batch.
-
-    Args:
-        params: URL path parameters.
-        body: Dict with optional 'batch_id' and required 'files' list of {filename, content_type}.
-        query: Query string parameters.
-
-    Returns:
-        Tuple of (status_code, response_dict).
-    """
+    """Generate presigned S3 upload URLs for a batch."""
     from datetime import datetime, timezone
     import re
 
@@ -604,7 +595,6 @@ def request_upload_urls(params: dict, body: dict, query: dict) -> tuple[int, dic
     if not results:
         return 400, {"error": "No valid filenames provided"}
 
-    # Initialize batch stats in DynamoDB with input count
     initialize_batch_stats(batch_id, len(results))
 
     return 200, {
@@ -653,11 +643,84 @@ def upload_batch_files(params: dict, body: dict, query: dict) -> tuple[int, dict
     if uploaded_count == 0:
         return 400, {"error": "No valid files uploaded"}
 
-    # Initialize batch stats in DynamoDB with uploaded count
     initialize_batch_stats(batch_id, uploaded_count)
 
     return 200, {
         "batch_id": batch_id,
         "uploaded_count": uploaded_count,
         "status": "ready",
+    }
+
+
+def export_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
+    """Export batch in JSON, CSV, or ZIP format."""
+    import base64
+    import io
+    import zipfile
+
+    batch_id = params["batch_id"]
+    export_format = str(query.get("format", "json")).strip().lower()
+
+    input_keys = storage.list_keys(f"{batch_id}/input/")
+    if not input_keys:
+        return 404, {"error": f"Batch '{batch_id}' not found or has no files"}
+
+    note_ids = sorted({storage.stem(key) for key in input_keys})
+    notes_data = []
+
+    for note_id in note_ids:
+        approved_text = get_saved_redacted_text(batch_id, note_id)
+        output_text = storage.read_text(f"{batch_id}/output/{note_id}_redacted.txt") or ""
+        detection = storage.read_json(f"{batch_id}/output/{note_id}_entities.json") or {}
+        is_approved = approved_text is not None
+        effective_text = approved_text if is_approved else output_text
+
+        notes_data.append({
+            "note_id": note_id,
+            "approved": is_approved,
+            "redacted_text": effective_text,
+            "entity_count": len(detection.get("pii_entities", [])),
+            "entities": detection.get("pii_entities", []),
+        })
+
+    approved_count = sum(1 for n in notes_data if n["approved"])
+
+    if export_format == "csv":
+        csv_lines = ["note_id,approved,entity_count,sample_entities"]
+        for n in notes_data:
+            entity_types = ";".join(sorted({e.get("type", "") for e in n["entities"] if e.get("type")}))
+            csv_lines.append(f'"{n["note_id"]}",{n["approved"]},{n["entity_count"]},"{entity_types}"')
+        csv_content = "\n".join(csv_lines)
+        return 200, {
+            "batch_id": batch_id,
+            "format": "csv",
+            "filename": f"{batch_id}_audit.csv",
+            "content": csv_content,
+            "total_notes": len(notes_data),
+            "approved_notes": approved_count,
+        }
+
+    if export_format == "zip":
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for n in notes_data:
+                filename = f"{n['note_id']}_redacted.txt"
+                zf.writestr(filename, n["redacted_text"])
+        zip_bytes = zip_buffer.getvalue()
+        b64_zip = base64.b64encode(zip_bytes).decode("utf-8")
+        return 200, {
+            "batch_id": batch_id,
+            "format": "zip",
+            "filename": f"{batch_id}_redacted.zip",
+            "data_base64": b64_zip,
+            "total_notes": len(notes_data),
+            "approved_notes": approved_count,
+        }
+
+    return 200, {
+        "batch_id": batch_id,
+        "format": "json",
+        "total_notes": len(notes_data),
+        "approved_notes": approved_count,
+        "notes": notes_data,
     }

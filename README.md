@@ -37,10 +37,11 @@
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
   - [Step 6: Longitudinal Date Shifting &amp; Synthetic Surrogates Engine](#step-6-longitudinal-date-shifting--synthetic-surrogates-engine)
-  - [Step 7: Generating Synthetic Test Data](#step-7-generating-synthetic-test-data)
-  - [Step 8: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-8-handling-failures--dead-letter-queue-dlq-redrive)
-  - [Step 9: Running Unit &amp; Integration Test Suites](#step-9-running-unit--integration-test-suites)
-  - [Step 10: Standalone Python CLI &amp; Local Processing](#step-10-standalone-python-cli--local-processing)
+  - [Step 7: Batch Export Formats (JSON, CSV, ZIP)](#step-7-batch-export-formats-json-csv-zip)
+  - [Step 8: Generating Synthetic Test Data](#step-8-generating-synthetic-test-data)
+  - [Step 9: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-9-handling-failures--dead-letter-queue-dlq-redrive)
+  - [Step 10: Running Unit &amp; Integration Test Suites](#step-10-running-unit--integration-test-suites)
+  - [Step 11: Standalone Python CLI &amp; Local Processing](#step-11-standalone-python-cli--local-processing)
 - [Cost Drivers &amp; Prompt Caching Optimization](#cost-drivers--prompt-caching-optimization)
 - [Credits &amp; License](#credits--license)
 - [Disclaimers](#disclaimers)
@@ -893,7 +894,19 @@ Rather than inserting bracketed tokens (`[NAME]`, `[HOSPITAL]`), RedactMed can s
 
 ---
 
-### Step 7: Generating Synthetic Test Data
+### Step 7: Batch Export Formats (JSON, CSV, ZIP)
+
+RedactMed provides institutional export capabilities to deliver sanitized data into clinical analytics warehouses:
+
+#### 1. Batch Export Formats (`GET /batches/{batch_id}/export?format={format}`)
+
+- **JSON (`format=json`)**: Structured export containing note identifiers, approval status, full sanitized text, entity counts, and granular entity coordinates.
+- **CSV (`format=csv`)**: Tabular export formatted for electronic data capture (EDC) systems and statistical software (R, Python, SAS).
+- **ZIP Archive (`format=zip`)**: Base64-encoded ZIP file containing approved, sanitized `.txt` documents structured identically to original clinical directory trees.
+
+---
+
+### Step 8: Generating Synthetic Test Data
 
 RedactMed includes a dedicated synthetic data generator tooling package located in [`tooling/synthetic-data-generator`](./tooling/synthetic-data-generator/) for testing and benchmarking pipelines without using real patient data:
 
@@ -909,7 +922,7 @@ Then upload the generated sample notes using `./scripts/create_batch.sh --notes-
 
 ---
 
-### Step 8: Handling Failures & Dead-Letter Queue (DLQ) Redrive
+### Step 9: Handling Failures & Dead-Letter Queue (DLQ) Redrive
 
 If any clinical note encounters transient model rate limits, malformed formatting, or network timeouts:
 
@@ -924,7 +937,7 @@ curl -X POST "$API_URL/batches/$BATCH_ID/redrive" \
 
 ---
 
-### Step 9: Running Unit & Integration Test Suites
+### Step 10: Running Unit & Integration Test Suites
 
 RedactMed includes comprehensive automated test coverage across backend services, agents, Lambda event handlers, and synthetic data tooling:
 
@@ -954,7 +967,7 @@ cd tooling/synthetic-data-generator && pytest
 
 ---
 
-### Step 10: Standalone Python CLI & Local Processing
+### Step 11: Standalone Python CLI & Local Processing
 
 For local development, bulk batch evaluation, or offline environments, RedactMed includes a dedicated CLI tool in [`tooling/cli`](./tooling/cli/) to run de-identification directly without deploying AWS cloud infrastructure:
 
