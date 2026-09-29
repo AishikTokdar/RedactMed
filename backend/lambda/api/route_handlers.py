@@ -724,3 +724,53 @@ def export_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         "approved_notes": approved_count,
         "notes": notes_data,
     }
+
+
+def get_batch_certificate(params: dict, body: dict, query: dict) -> tuple[int, dict]:
+    """Generate cryptographic compliance certificate for batch."""
+    from compliance_certificate import (
+        generate_batch_compliance_certificate,
+        render_certificate_html,
+    )
+
+    batch_id = params["batch_id"]
+    doc_format = str(query.get("format", "json")).strip().lower()
+
+    input_keys = storage.list_keys(f"{batch_id}/input/")
+    if not input_keys:
+        return 404, {"error": f"Batch '{batch_id}' not found or has no files"}
+
+    note_ids = sorted({storage.stem(key) for key in input_keys})
+    manifest = []
+
+    for note_id in note_ids:
+        orig_key = next((k for k in input_keys if storage.stem(k) == note_id), "")
+        orig_text = storage.read_text(orig_key) or "" if orig_key else ""
+        approved_text = get_saved_redacted_text(batch_id, note_id)
+        output_text = storage.read_text(f"{batch_id}/output/{note_id}_redacted.txt") or ""
+        detection = storage.read_json(f"{batch_id}/output/{note_id}_entities.json") or {}
+
+        is_approved = approved_text is not None
+        effective_redacted = approved_text if is_approved else output_text
+
+        manifest.append({
+            "note_id": note_id,
+            "original_text": orig_text,
+            "redacted_text": effective_redacted,
+            "approved": is_approved,
+            "entities": detection.get("pii_entities", []),
+        })
+
+    cert = generate_batch_compliance_certificate(batch_id, manifest)
+
+    if doc_format == "html":
+        html = render_certificate_html(cert)
+        return 200, {
+            "batch_id": batch_id,
+            "format": "html",
+            "html": html,
+            "certificate_id": cert["certificate_id"],
+            "is_fully_compliant": cert["is_fully_compliant"],
+        }
+
+    return 200, cert

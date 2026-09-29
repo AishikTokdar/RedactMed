@@ -141,6 +141,13 @@ def export_batch_route(batch_id: str) -> Response:
     return _invoke(handlers.export_batch, {"batch_id": batch_id})
 
 
+@app.get("/batches/<batch_id>/certificate")
+def get_batch_certificate_route(batch_id: str) -> Response:
+    """GET /batches/{batch_id}/certificate - Generate verifiable de-identification compliance certificate."""
+    return _invoke(handlers.get_batch_certificate, {"batch_id": batch_id})
+
+
+
 
 @app.not_found
 def route_not_found() -> Response:

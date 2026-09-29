@@ -37,7 +37,7 @@
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
   - [Step 6: Longitudinal Date Shifting &amp; Synthetic Surrogates Engine](#step-6-longitudinal-date-shifting--synthetic-surrogates-engine)
-  - [Step 7: Batch Export Formats (JSON, CSV, ZIP)](#step-7-batch-export-formats-json-csv-zip)
+  - [Step 7: Batch Export Center &amp; Cryptographic Compliance Certificates](#step-7-batch-export-center--cryptographic-compliance-certificates)
   - [Step 8: Generating Synthetic Test Data](#step-8-generating-synthetic-test-data)
   - [Step 9: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-9-handling-failures--dead-letter-queue-dlq-redrive)
   - [Step 10: Running Unit &amp; Integration Test Suites](#step-10-running-unit--integration-test-suites)
@@ -894,15 +894,24 @@ Rather than inserting bracketed tokens (`[NAME]`, `[HOSPITAL]`), RedactMed can s
 
 ---
 
-### Step 7: Batch Export Formats (JSON, CSV, ZIP)
+### Step 7: Batch Export Center & Cryptographic Compliance Certificates
 
-RedactMed provides institutional export capabilities to deliver sanitized data into clinical analytics warehouses:
+RedactMed provides institutional export capabilities to deliver sanitized data into clinical analytics warehouses while establishing legal provenance:
 
 #### 1. Batch Export Formats (`GET /batches/{batch_id}/export?format={format}`)
 
 - **JSON (`format=json`)**: Structured export containing note identifiers, approval status, full sanitized text, entity counts, and granular entity coordinates.
 - **CSV (`format=csv`)**: Tabular export formatted for electronic data capture (EDC) systems and statistical software (R, Python, SAS).
 - **ZIP Archive (`format=zip`)**: Base64-encoded ZIP file containing approved, sanitized `.txt` documents structured identically to original clinical directory trees.
+
+#### 2. Cryptographic Compliance Certificates (`GET /batches/{batch_id}/certificate?format={format}`)
+
+For regulatory submission (e.g., FDA 21 CFR Part 11, HIPAA Safe Harbor attestations, DPDP consent audits), RedactMed dynamically issues tamper-evident compliance certificates:
+
+- **Cryptographic Hash Receipt**: Computes SHA-256 digests over all sanitized documents in the batch, binding the certificate to the exact output payload.
+- **Policy Compliance Checklist**: Documents the evaluated regulatory framework, total notes evaluated, total PHI entities redacted by class, and human reviewer identity.
+- **Downloadable & Printable HTML Certificate**:
+  - Request `format=html` to receive a rendered certificate with institutional borders, verification badges, and printable PDF styling.
 
 ---
 
