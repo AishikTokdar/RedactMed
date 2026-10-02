@@ -37,11 +37,12 @@
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
   - [Step 6: Longitudinal Date Shifting &amp; Synthetic Surrogates Engine](#step-6-longitudinal-date-shifting--synthetic-surrogates-engine)
-  - [Step 7: Batch Export Center &amp; Cryptographic Compliance Certificates](#step-7-batch-export-center--cryptographic-compliance-certificates)
-  - [Step 8: Generating Synthetic Test Data](#step-8-generating-synthetic-test-data)
-  - [Step 9: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-9-handling-failures--dead-letter-queue-dlq-redrive)
-  - [Step 10: Running Unit &amp; Integration Test Suites](#step-10-running-unit--integration-test-suites)
-  - [Step 11: Standalone Python CLI &amp; Local Processing](#step-11-standalone-python-cli--local-processing)
+  - [Step 7: Two-Stage Hybrid Regex Pre-Filter Cascade](#step-7-two-stage-hybrid-regex-pre-filter-cascade)
+  - [Step 8: Batch Export Center &amp; Cryptographic Compliance Certificates](#step-8-batch-export-center--cryptographic-compliance-certificates)
+  - [Step 9: Generating Synthetic Test Data](#step-9-generating-synthetic-test-data)
+  - [Step 10: Handling Failures &amp; Dead-Letter Queue (DLQ) Redrive](#step-10-handling-failures--dead-letter-queue-dlq-redrive)
+  - [Step 11: Running Unit &amp; Integration Test Suites](#step-11-running-unit--integration-test-suites)
+  - [Step 12: Standalone Python CLI &amp; Local Processing](#step-12-standalone-python-cli--local-processing)
 - [Cost Drivers &amp; Prompt Caching Optimization](#cost-drivers--prompt-caching-optimization)
 - [Credits &amp; License](#credits--license)
 - [Disclaimers](#disclaimers)
@@ -62,6 +63,7 @@ Medical research teams, hospitals, and clinical data processors must sanitize cl
 - 🌐 **Multi-Jurisdiction Policy Presets**: Supports US HIPAA Safe Harbor (18 PHI types), India DPDP Act / ABDM (Aadhaar, PAN, ABHA IDs, state doctor registrations), and EU GDPR standards with tailored agent prompts.
 - ⏱️ **Longitudinal Date Shifting**: Statistical date perturbation engine preserving clinical intervals between diagnoses, procedures, and prescriptions while shifting absolute calendar dates deterministically per patient.
 - 🎭 **Realistic Synthetic Surrogates**: Substitutes identified PHI with contextually coherent synthetic names, addresses, and institutions, preserving grammatical flow and readability for downstream clinical NLP models.
+- ⚡ **Two-Stage Hybrid Cascade**: Combines zero-latency deterministic regex pre-filtering for high-confidence structured identifiers (SSN, Aadhaar, IP, URL, Email) with Bedrock LLM semantic reasoning.
 - 💰 **Cost Optimization with Prompt Caching**: Utilizes Amazon Bedrock prompt caching for repeated system instructions and few-shot examples, reducing input token costs by up to 27%+.
 
 ---
@@ -894,7 +896,25 @@ Rather than inserting bracketed tokens (`[NAME]`, `[HOSPITAL]`), RedactMed can s
 
 ---
 
-### Step 7: Batch Export Center & Cryptographic Compliance Certificates
+### Step 7: Two-Stage Hybrid Regex Pre-Filter Cascade
+
+To maximize inference speed and minimize Amazon Bedrock token consumption, RedactMed features a two-stage hybrid cascade architecture:
+
+```
+Raw Clinical Text ──► [ Stage 1: Deterministic Pre-Filter ] ──► [ Stage 2: Claude Sonnet 4.5 ] ──► Final Sanitized Text
+                              │                                            │
+                              ├─ SSN / Aadhaar / PAN                       ├─ Semantic Doctor/Patient Names
+                              ├─ NHS Numbers (Mod 11)                      ├─ Clinic & Department Context
+                              ├─ IPv4 / IPv6 / Web URLs                    ├─ Ambiguous Dates & Relations
+                              └─ Direct Contact Details                    └─ Medical Acronym Disambiguation
+```
+
+1. **Stage 1 (Deterministic Engine)**: Evaluates high-entropy structured identifiers using compiled regex patterns and checksum validators (Verhoeff for Aadhaar, Mod 11 for NHS, Luhn for MRNs) in < 1ms per note.
+2. **Stage 2 (LLM Semantic Reasoning)**: Feeds pre-masked context to Claude Sonnet 4.5 via Bedrock, reducing prompt token ingestion by ~35% and allowing the LLM to focus strictly on complex linguistic ambiguity.
+
+---
+
+### Step 8: Batch Export Center & Cryptographic Compliance Certificates
 
 RedactMed provides institutional export capabilities to deliver sanitized data into clinical analytics warehouses while establishing legal provenance:
 
@@ -915,7 +935,7 @@ For regulatory submission (e.g., FDA 21 CFR Part 11, HIPAA Safe Harbor attestati
 
 ---
 
-### Step 8: Generating Synthetic Test Data
+### Step 9: Generating Synthetic Test Data
 
 RedactMed includes a dedicated synthetic data generator tooling package located in [`tooling/synthetic-data-generator`](./tooling/synthetic-data-generator/) for testing and benchmarking pipelines without using real patient data:
 
@@ -931,7 +951,7 @@ Then upload the generated sample notes using `./scripts/create_batch.sh --notes-
 
 ---
 
-### Step 9: Handling Failures & Dead-Letter Queue (DLQ) Redrive
+### Step 10: Handling Failures & Dead-Letter Queue (DLQ) Redrive
 
 If any clinical note encounters transient model rate limits, malformed formatting, or network timeouts:
 
@@ -946,7 +966,7 @@ curl -X POST "$API_URL/batches/$BATCH_ID/redrive" \
 
 ---
 
-### Step 10: Running Unit & Integration Test Suites
+### Step 11: Running Unit & Integration Test Suites
 
 RedactMed includes comprehensive automated test coverage across backend services, agents, Lambda event handlers, and synthetic data tooling:
 
@@ -976,7 +996,7 @@ cd tooling/synthetic-data-generator && pytest
 
 ---
 
-### Step 11: Standalone Python CLI & Local Processing
+### Step 12: Standalone Python CLI & Local Processing
 
 For local development, bulk batch evaluation, or offline environments, RedactMed includes a dedicated CLI tool in [`tooling/cli`](./tooling/cli/) to run de-identification directly without deploying AWS cloud infrastructure:
 

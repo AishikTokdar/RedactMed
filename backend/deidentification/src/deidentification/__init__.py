@@ -10,6 +10,11 @@ from .deidentification import (
     process_dataset
 )
 
+from .prefilter import (
+    DeterministicRegexFilter,
+    extract_structured_phi,
+)
+
 __all__ = [
     "load_document",
     "validate_document_length",
@@ -19,4 +24,7 @@ __all__ = [
     "process_document",
     "process_single_document",
     "process_dataset",
+    "DeterministicRegexFilter",
+    "extract_structured_phi",
 ]
+
