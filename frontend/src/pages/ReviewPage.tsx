@@ -8,6 +8,7 @@ import { useParams, useNavigate, Link, useBeforeUnload } from 'react-router-dom'
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listNotes, getNote, approveNote, PAGE_SIZE, type Note, type BatchesQueryData } from '../api/client'
 import DiffViewer from '../components/DiffViewer'
+import EntityInspector from '../components/EntityInspector'
 import './ReviewPage.css'
 
 type ReviewToast = { id: number; message: string }
@@ -21,7 +22,10 @@ export default function ReviewPage() {
   const queryClient = useQueryClient()
   const [editableRedactedText, setEditableRedactedText] = useState('')
   const [isEditingRedacted, setIsEditingRedacted] = useState(false)
+  const [isInspectorOpen, setIsInspectorOpen] = useState(true)
+  const [selectedEntityValue, setSelectedEntityValue] = useState<string | null>(null)
   const [reviewToasts, setReviewToasts] = useState<ReviewToast[]>([])
+
   const toastTimeoutIdsRef = useRef<Array<ReturnType<typeof window.setTimeout>>>([])
   const lastToastTimestampRef = useRef(0)
 
@@ -392,6 +396,15 @@ export default function ReviewPage() {
                     )}
                   </>
                 )}
+                {noteDetail.pii_entities && noteDetail.pii_entities.length > 0 && (
+                  <button
+                    className={`btn btn-sm ${isInspectorOpen ? 'active' : ''}`}
+                    onClick={() => setIsInspectorOpen((prev) => !prev)}
+                    title="Toggle PHI Entities Inspector"
+                  >
+                    🏷️ PHI Entities ({noteDetail.pii_entities.length})
+                  </button>
+                )}
                 {noteDetail.approved ? (
                   <button
                     className="btn btn-sm btn-danger"
@@ -418,18 +431,29 @@ export default function ReviewPage() {
               </div>
             </div>
 
-            <div className="review-content">
-              {canShowDiff ? (
-                <DiffViewer
-                  original={noteDetail.original_text}
-                  redacted={editableRedactedText}
-                  editableRedacted={isEditingRedacted}
-                  onRedactedChange={setEditableRedactedText}
+            <div className="review-content" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+              <div style={{ flex: 1, height: '100%', overflow: 'hidden', minWidth: 0 }}>
+                {canShowDiff ? (
+                  <DiffViewer
+                    original={noteDetail.original_text}
+                    redacted={editableRedactedText}
+                    editableRedacted={isEditingRedacted}
+                    onRedactedChange={setEditableRedactedText}
+                  />
+                ) : (
+                  <div className="empty-state">
+                    {noteDetail.original_text ? 'Redacted output not yet available.' : 'Original text not available'}
+                  </div>
+                )}
+              </div>
+              {noteDetail.pii_entities && noteDetail.pii_entities.length > 0 && (
+                <EntityInspector
+                  entities={noteDetail.pii_entities}
+                  isOpen={isInspectorOpen}
+                  onToggleOpen={() => setIsInspectorOpen((prev) => !prev)}
+                  selectedEntityValue={selectedEntityValue}
+                  onSelectEntity={(ent) => setSelectedEntityValue(ent.value)}
                 />
-              ) : (
-                <div className="empty-state">
-                  {noteDetail.original_text ? 'Redacted output not yet available.' : 'Original text not available'}
-                </div>
               )}
             </div>
           </>

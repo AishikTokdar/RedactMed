@@ -35,6 +35,9 @@
   - [Step 2: Ingesting Clinical Notes &amp; Sample Testing Data](#step-2-ingesting-clinical-notes--sample-testing-data)
   - [Step 3: Executing AI Redaction Pipelines](#step-3-executing-ai-redaction-pipelines)
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
+    - [Interactive PHI Entity Inspector](#interactive-phi-entity-inspector)
+    - [Reviewer Keyboard Hotkeys](#reviewer-keyboard-hotkeys-power-user-productivity)
+    - [Multi-Batch Selection Checkboxes &amp; Bulk Actions](#multi-batch-selection-checkboxes--bulk-actions)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
   - [Step 6: Longitudinal Date Shifting &amp; Synthetic Surrogates Engine](#step-6-longitudinal-date-shifting--synthetic-surrogates-engine)
   - [Step 7: Two-Stage Hybrid Regex Pre-Filter Cascade](#step-7-two-stage-hybrid-regex-pre-filter-cascade)
@@ -810,27 +813,23 @@ Upon signing in, you land on the **Batches Overview** screen:
 - As SQS and Lambda workers process notes concurrently via Bedrock, progress metrics update live.
 - Once completed, the batch status transitions to **`Needs Review`**.
 
-#### 4. Reviewing Notes in the Interactive Diff Viewer
-- Click **Review Batch** or select an individual note to open the **Diff Viewer**:
-  - **Left Pane (Original Note)**: Displays raw clinical text with highlighted PHI entity badges.
-  - **Right Pane (Redacted Note)**: Displays sanitized output with standard category tokens (`[NAME]`, `[DATE]`, `[ADDRESS]`, `[MRN]`).
-- **Entity Inspector**: Click or hover over any highlighted entity badge to inspect metadata (entity category, start/end character offsets, raw value, and AI confidence score).
-- **Editing & Manual Overrides**:
-  1. Click **Edit Redactions** above the redacted pane.
-  2. Adjust replacement text, add custom redactions, or alter entity category assignments.
-  3. Click **Save Changes** to commit edits to the draft.
-- **Note List Navigation**: Use the left sidebar to navigate between notes, or use **Previous Note** (`←`) and **Next Note** (`→`) buttons.
+#### 4. Reviewing Notes in the Interactive Diff Viewer & Reviewer Tools
 
-#### 5. Approving Notes & Exporting Sanitize Outputs
-- **Single Note Approval**: Click **Approve Note** on the review header once verified. The note badge updates to green (`APPROVED`), and the finalized text is saved to `s3://$BUCKET/approved/{batch_id}/{note_id}.txt`.
-- **Mass Approval ("Approve All")**: Click **Approve All** on the batch header to approve all processed notes in the batch simultaneously. The overall batch status updates to **`Approved`**.
+Click **Review Batch** or select an individual note to enter the full-screen clinical reviewer workspace:
 
-#### 6. Monitoring & Re-driving Failed Notes
-- If transient API rate limits occur, isolated failed notes display a red `FAILED` badge.
-- View DLQ stats in the batch details pane.
-- Click **Redrive Failed Notes** on the batch header to re-queue failed notes from the DLQ for processing.
+- **Side-by-Side Synchronized Diff**:
+  - **Left Pane (Original Clinical Note)**: Displays raw EHR document text with category color badges wrapping detected PHI spans.
+  - **Right Pane (Redacted Sanitized Note)**: Displays de-identified text replaced with standardized tokens (`[NAME]`, `[DATE]`, `[ADDRESS]`, `[ID]`) or synthetic surrogates.
+  - Synchronized scroll tracking between both panes maintains side-by-side alignment across multi-page clinical records.
 
-#### 7. Reviewer Keyboard Hotkeys (Power-User Productivity)
+##### Interactive PHI Entity Inspector
+Click the **Entity Inspector** toggle button in the review header to open a comprehensive real-time metadata panel:
+- **Category Filter**: Filter entities by type (`NAME`, `DATE`, `LOCATION`, `ID`, `CONTACT`, `ALL`).
+- **Confidence Threshold Slider**: Filter annotations by AI confidence percentage (0% to 100%).
+- **Quick Search**: Search detected entity values in real-time.
+- **Bi-directional Focus**: Clicking any row in the Entity Inspector smoothly auto-scrolls the Diff Viewer to the exact character offset and highlights the span.
+
+##### Reviewer Keyboard Hotkeys (Power-User Productivity)
 RedactMed includes single-key keyboard hotkeys to accelerate clinical note review:
 - **`A`**: Save & Approve the currently selected note (or save redaction edits).
 - **`E`**: Enable Edit Mode to modify redacted text inline.
@@ -839,7 +838,7 @@ RedactMed includes single-key keyboard hotkeys to accelerate clinical note revie
 
 > 💡 **Focus Safety Guard**: Hotkeys automatically disarm when typing inside text inputs, textareas, or editable elements so letter inputs are never interrupted.
 
-#### 8. Multi-Batch Selection Checkboxes & Bulk Actions
+##### Multi-Batch Selection Checkboxes & Bulk Actions
 - Check the selection checkboxes next to batches in the sidebar or main overview list.
 - Use the **Select All** header checkbox to toggle selection across all listed batches on the page.
 - When batches are selected, a floating **Bulk Actions Bar** allows reviewers to:
