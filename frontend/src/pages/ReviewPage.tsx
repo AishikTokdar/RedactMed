@@ -439,6 +439,7 @@ export default function ReviewPage() {
                     redacted={editableRedactedText}
                     editableRedacted={isEditingRedacted}
                     onRedactedChange={setEditableRedactedText}
+                    highlightValue={selectedEntityValue}
                   />
                 ) : (
                   <div className="empty-state">

@@ -7,6 +7,7 @@ interface DiffViewerProps {
   redacted: string
   editableRedacted?: boolean
   onRedactedChange?: (value: string) => void
+  highlightValue?: string | null
 }
 
 interface DiffChange {
@@ -19,11 +20,22 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(w => w.length > 0).length
 }
 
+function getTagCategoryClass(val: string): string {
+  const upper = val.toUpperCase()
+  if (upper.includes('NAME')) return 'tag-names'
+  if (upper.includes('DATE') || upper.includes('AGE')) return 'tag-dates'
+  if (upper.includes('ADDRESS') || upper.includes('LOCATION') || upper.includes('ZIP') || upper.includes('ADDR')) return 'tag-locations'
+  if (upper.includes('ID') || upper.includes('SSN') || upper.includes('MRN') || upper.includes('AADHAAR') || upper.includes('PAN') || upper.includes('LICENSE') || upper.includes('VIN') || upper.includes('DEVICE')) return 'tag-ids'
+  if (upper.includes('PHONE') || upper.includes('EMAIL') || upper.includes('URL') || upper.includes('IP') || upper.includes('FAX')) return 'tag-contact'
+  return 'tag-other'
+}
+
 export default function DiffViewer({
   original,
   redacted,
   editableRedacted = false,
   onRedactedChange,
+  highlightValue,
 }: DiffViewerProps) {
   const originalRef = useRef<HTMLElement | null>(null)
   const redactedRef = useRef<HTMLElement | null>(null)
@@ -126,14 +138,32 @@ export default function DiffViewer({
   const renderOriginal = (diffs: DiffChange[]) =>
     diffs.map((change, i) => {
       if (change.added) return null
-      if (change.removed) return <span key={i} className="diff-removed">{change.value}</span>
-      return <span key={i}>{change.value}</span>
+      const isFocused =
+        Boolean(highlightValue) &&
+        change.value.toLowerCase().includes((highlightValue || '').toLowerCase().trim())
+      const baseClass = change.removed ? 'diff-removed' : ''
+      const focusedClass = isFocused ? 'diff-focused-match' : ''
+      const className = [baseClass, focusedClass].filter(Boolean).join(' ')
+
+      return (
+        <span key={i} className={className || undefined}>
+          {change.value}
+        </span>
+      )
     })
 
   const renderRedacted = (diffs: DiffChange[]) =>
     diffs.map((change, i) => {
       if (change.removed) return null
-      if (change.added) return <span key={i} className="diff-added">{change.value}</span>
+      if (change.added) {
+        const isTag = change.value.includes('[') || change.value.startsWith('**')
+        const tagCategory = isTag ? getTagCategoryClass(change.value) : ''
+        return (
+          <span key={i} className={`diff-added ${isTag ? `phi-tag-badge ${tagCategory}` : ''}`}>
+            {change.value}
+          </span>
+        )
+      }
       return <span key={i}>{change.value}</span>
     })
 

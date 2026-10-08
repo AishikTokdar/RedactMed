@@ -263,3 +263,67 @@
     max-height: 50vh;
   }
 }
+
+/* Focused Entity Highlighting */
+.diff-focused-match {
+  background: #fde047 !important;
+  color: #713f12 !important;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 1px 4px;
+  box-shadow: 0 0 0 2px #eab308;
+  animation: pulse-focus 1.5s infinite alternate;
+}
+
+@keyframes pulse-focus {
+  0% { box-shadow: 0 0 0 2px #eab308; }
+  100% { box-shadow: 0 0 0 5px rgba(234, 179, 8, 0.4); }
+}
+
+/* Categorized PHI Tag Badges */
+.phi-tag-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  margin: 0 1px;
+}
+
+.phi-tag-badge.tag-names {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.phi-tag-badge.tag-dates {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.phi-tag-badge.tag-locations {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.phi-tag-badge.tag-ids {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #a5b4fc;
+}
+
+.phi-tag-badge.tag-contact {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #d8b4fe;
+}
+
+.phi-tag-badge.tag-other {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+

@@ -36,6 +36,7 @@
   - [Step 3: Executing AI Redaction Pipelines](#step-3-executing-ai-redaction-pipelines)
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
     - [Interactive PHI Entity Inspector](#interactive-phi-entity-inspector)
+    - [Category Color Badges &amp; Active Entity Highlights](#category-color-badges--active-entity-highlights)
     - [Reviewer Keyboard Hotkeys](#reviewer-keyboard-hotkeys-power-user-productivity)
     - [Multi-Batch Selection Checkboxes &amp; Bulk Actions](#multi-batch-selection-checkboxes--bulk-actions)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
@@ -828,6 +829,16 @@ Click the **Entity Inspector** toggle button in the review header to open a comp
 - **Confidence Threshold Slider**: Filter annotations by AI confidence percentage (0% to 100%).
 - **Quick Search**: Search detected entity values in real-time.
 - **Bi-directional Focus**: Clicking any row in the Entity Inspector smoothly auto-scrolls the Diff Viewer to the exact character offset and highlights the span.
+
+##### Category Color Badges & Active Entity Highlights
+RedactMed visualizes PHI entities using distinct, high-contrast, accessible categorical color coding:
+- 🔵 **Blue (`#3b82f6`)**: Names (`NAME`, `PATIENT`, `DOCTOR`)
+- 🟢 **Green (`#10b981`)**: Dates & Ages (`DATE`, `TIME`, `AGE`)
+- 🟠 **Orange (`#f59e0b`)**: Identifiers (`ID`, `SSN`, `AADHAAR`, `MRN`, `PAN`, `NHS`)
+- 🟣 **Purple (`#8b5cf6`)**: Locations (`LOCATION`, `ADDRESS`, `ORGANIZATION`, `ZIP`)
+- 🔴 **Rose (`#f43f5e`)**: Contact details (`PHONE`, `EMAIL`, `URL`, `IP_ADDRESS`)
+
+Hovering over any in-text badge renders an interactive tooltip showing the entity classification, character start/end offsets, and Bedrock confidence rating.
 
 ##### Reviewer Keyboard Hotkeys (Power-User Productivity)
 RedactMed includes single-key keyboard hotkeys to accelerate clinical note review:
