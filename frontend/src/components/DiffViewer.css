@@ -327,3 +327,67 @@
   border: 1px solid #cbd5e1;
 }
 
+/* Quick Redact Floating Popover */
+.quick-redact-popover {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #1e293b;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  animation: popover-fade 0.15s ease-out;
+}
+
+@keyframes popover-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popover-title {
+  font-weight: 700;
+  color: #94a3b8;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.popover-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+  white-space: nowrap;
+}
+
+.popover-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.popover-btn.tag-names { background: #ef4444; color: #ffffff; }
+.popover-btn.tag-dates { background: #f59e0b; color: #ffffff; }
+.popover-btn.tag-locations { background: #10b981; color: #ffffff; }
+.popover-btn.tag-ids { background: #6366f1; color: #ffffff; }
+.popover-btn.tag-contact { background: #a855f7; color: #ffffff; }
+.popover-btn.tag-other { background: #64748b; color: #ffffff; }
+
+.popover-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.popover-close:hover {
+  color: #ffffff;
+}
+
+

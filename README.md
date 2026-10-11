@@ -37,6 +37,7 @@
   - [Step 4: Using the Human-in-the-Loop Review Dashboard](#step-4-using-the-human-in-the-loop-review-dashboard)
     - [Interactive PHI Entity Inspector](#interactive-phi-entity-inspector)
     - [Category Color Badges &amp; Active Entity Highlights](#category-color-badges--active-entity-highlights)
+    - [Click-to-Redact &amp; Interactive Span Annotation](#click-to-redact--interactive-span-annotation)
     - [Reviewer Keyboard Hotkeys](#reviewer-keyboard-hotkeys-power-user-productivity)
     - [Multi-Batch Selection Checkboxes &amp; Bulk Actions](#multi-batch-selection-checkboxes--bulk-actions)
   - [Step 5: Multi-Jurisdiction Compliance Policies (HIPAA, DPDP, GDPR)](#step-5-multi-jurisdiction-compliance-policies-hipaa-dpdp-gdpr)
@@ -840,9 +841,16 @@ RedactMed visualizes PHI entities using distinct, high-contrast, accessible cate
 
 Hovering over any in-text badge renders an interactive tooltip showing the entity classification, character start/end offsets, and Bedrock confidence rating.
 
+##### Click-to-Redact & Interactive Span Annotation
+Human reviewers can flag missed sensitive tokens or custom phrases directly without editing raw text:
+1. Highlight any word or sentence fragment in the original document pane with your cursor.
+2. An interactive floating **Redact Annotation Popup** appears instantly.
+3. Select the desired entity category (`NAME`, `DATE`, `LOCATION`, `ID`, `CONTACT`, or custom token).
+4. The system immediately applies the redaction, updates the synchronized redacted pane, and records the manual override in the note metadata.
+
 ##### Reviewer Keyboard Hotkeys (Power-User Productivity)
 RedactMed includes single-key keyboard hotkeys to accelerate clinical note review:
-- **`A`**: Save & Approve the currently selected note (or save redaction edits).
+- **`A`**: Save & Approve the currently selected note.
 - **`E`**: Enable Edit Mode to modify redacted text inline.
 - **`←` (Left Arrow)**: Navigate to the previous clinical note in the batch.
 - **`→` (Right Arrow)**: Navigate to the next clinical note in the batch.

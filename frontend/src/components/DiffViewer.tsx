@@ -8,6 +8,7 @@ interface DiffViewerProps {
   editableRedacted?: boolean
   onRedactedChange?: (value: string) => void
   highlightValue?: string | null
+  onManualRedactSpan?: (selectedText: string, piiType: string) => void
 }
 
 interface DiffChange {
@@ -36,6 +37,7 @@ export default function DiffViewer({
   editableRedacted = false,
   onRedactedChange,
   highlightValue,
+  onManualRedactSpan,
 }: DiffViewerProps) {
   const originalRef = useRef<HTMLElement | null>(null)
   const redactedRef = useRef<HTMLElement | null>(null)
@@ -43,6 +45,8 @@ export default function DiffViewer({
   const [syncScrollEnabled, setSyncScrollEnabled] = useState(true)
   const syncScrollEnabledRef = useRef(syncScrollEnabled)
   const lastScrollPositions = useRef({ original: 0, redacted: 0 })
+  const [popover, setPopover] = useState<{ text: string; top: number; left: number } | null>(null)
+
 
   useEffect(() => {
     syncScrollEnabledRef.current = syncScrollEnabled
@@ -167,6 +171,39 @@ export default function DiffViewer({
       return <span key={i}>{change.value}</span>
     })
 
+  const handleOriginalMouseUp = () => {
+    if (!onManualRedactSpan) return
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed) {
+      setPopover(null)
+      return
+    }
+    const selectedText = selection.toString().trim()
+    if (selectedText.length > 0) {
+      try {
+        const range = selection.getRangeAt(0)
+        const rect = range.getBoundingClientRect()
+        setPopover({
+          text: selectedText,
+          top: Math.max(10, rect.top - 46),
+          left: Math.max(10, rect.left),
+        })
+      } catch {
+        setPopover(null)
+      }
+    } else {
+      setPopover(null)
+    }
+  }
+
+  const applyQuickRedact = (piiType: string) => {
+    if (popover && onManualRedactSpan) {
+      onManualRedactSpan(popover.text, piiType)
+      setPopover(null)
+      window.getSelection()?.removeAllRanges()
+    }
+  }
+
   return (
     <div className="diff-viewer">
       <div className="diff-toolbar">
@@ -199,6 +236,7 @@ export default function DiffViewer({
             ref={(element) => {
               originalRef.current = element
             }}
+            onMouseUp={handleOriginalMouseUp}
           >
             <pre className="diff-text">{renderOriginal(changes)}</pre>
           </div>
@@ -234,6 +272,23 @@ export default function DiffViewer({
           )}
         </div>
       </div>
+
+      {popover && (
+        <div
+          className="quick-redact-popover"
+          style={{ position: 'fixed', top: `${popover.top}px`, left: `${popover.left}px`, zIndex: 1000 }}
+        >
+          <span className="popover-title">Redact as:</span>
+          <button className="popover-btn tag-names" onClick={() => applyQuickRedact('person_name')}>Name</button>
+          <button className="popover-btn tag-dates" onClick={() => applyQuickRedact('date')}>Date</button>
+          <button className="popover-btn tag-locations" onClick={() => applyQuickRedact('address')}>Location</button>
+          <button className="popover-btn tag-ids" onClick={() => applyQuickRedact('id')}>ID</button>
+          <button className="popover-btn tag-contact" onClick={() => applyQuickRedact('phone_number')}>Phone</button>
+          <button className="popover-btn tag-other" onClick={() => applyQuickRedact('other')}>Other</button>
+          <button className="popover-close" onClick={() => setPopover(null)}>&times;</button>
+        </div>
+      )}
     </div>
   )
 }
+

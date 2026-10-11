@@ -223,6 +223,41 @@ export default function ReviewPage() {
     }
   }, [noteDetail, approveMutation, hasRedactedEdits, handleSaveRedacted, editableRedactedText])
 
+  const handleManualRedactSpan = useCallback((selectedText: string, piiType: string) => {
+    const tag = `[${piiType.toUpperCase()}]`
+    const escaped = selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const pattern = new RegExp(`\\b${escaped}\\b`, 'g')
+
+    const currentText = editableRedactedText || (noteDetail?.redacted_text ?? '')
+    const newText = pattern.test(currentText)
+      ? currentText.replace(pattern, tag)
+      : currentText.replace(selectedText, tag)
+
+    setEditableRedactedText(newText)
+
+    if (noteDetail) {
+      const updatedEntities = [
+        ...(noteDetail.pii_entities ?? []),
+        { type: piiType, value: selectedText, confidence: 1.0 },
+      ]
+      queryClient.setQueryData(['note-detail', batchId, selectedNoteId], {
+        ...noteDetail,
+        pii_entities: updatedEntities,
+        redacted_text: newText,
+      })
+    }
+
+    const toastId = Date.now() + Math.random()
+    setReviewToasts((current) => [
+      ...current,
+      { id: toastId, message: `Redacted "${selectedText}" as ${tag}` },
+    ])
+    const timeoutId = window.setTimeout(() => {
+      setReviewToasts((current) => current.filter((t) => t.id !== toastId))
+    }, 3500)
+    toastTimeoutIdsRef.current.push(timeoutId)
+  }, [editableRedactedText, noteDetail, queryClient, batchId, selectedNoteId])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement
@@ -440,6 +475,7 @@ export default function ReviewPage() {
                     editableRedacted={isEditingRedacted}
                     onRedactedChange={setEditableRedactedText}
                     highlightValue={selectedEntityValue}
+                    onManualRedactSpan={handleManualRedactSpan}
                   />
                 ) : (
                   <div className="empty-state">
