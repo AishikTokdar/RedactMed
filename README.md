@@ -951,6 +951,12 @@ For regulatory submission (e.g., FDA 21 CFR Part 11, HIPAA Safe Harbor attestati
 - **Downloadable & Printable HTML Certificate**:
   - Request `format=html` to receive a rendered certificate with institutional borders, verification badges, and printable PDF styling.
 
+#### 3. In-Browser Batch Export Center (UI Modal)
+
+From the RedactMed review dashboard, click **Export Batch** to open the Export Batch Center modal:
+- **Instant Client-Side Downloads**: Automatically triggers in-browser Blob download for ZIP archives, CSV audits, JSON manifests, or printable HTML compliance certificates.
+- **Verification Summary**: Displays live note counts, sanitization status, and regulatory preset before packaging.
+
 ---
 
 ### Step 9: Generating Synthetic Test Data

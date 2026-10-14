@@ -17,6 +17,7 @@ import {
   type BatchesQueryData,
 } from '../api/client'
 import UploadBatchModal from '../components/UploadBatchModal'
+import ExportBatchModal from '../components/ExportBatchModal'
 import './DashboardPage.css'
 
 type BatchStatusKey =
@@ -72,6 +73,7 @@ export default function DashboardPage() {
   const [approvingAll, setApprovingAll] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [exportModalBatchId, setExportModalBatchId] = useState<string | null>(null)
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
   const [isBulkApproving, setIsBulkApproving] = useState(false)
   const [isBulkStarting, setIsBulkStarting] = useState(false)
@@ -530,15 +532,27 @@ export default function DashboardPage() {
                           </span>
                         )}
                         {batchDetail.status === 'completed' && (
-                          <button
-                            className="btn btn-primary action-btn"
-                            onClick={() => navigate(`/review/${selectedBatchId}`)}
-                          >
-                            <span className="action-btn-label">
-                              <span className="action-btn-topline">Review</span>
-                              <span className="action-btn-subline">Notes</span>
-                            </span>
-                          </button>
+                          <>
+                            <button
+                              className="btn btn-primary action-btn"
+                              onClick={() => navigate(`/review/${selectedBatchId}`)}
+                            >
+                              <span className="action-btn-label">
+                                <span className="action-btn-topline">Review</span>
+                                <span className="action-btn-subline">Notes</span>
+                              </span>
+                            </button>
+                            <button
+                              className="btn btn-secondary action-btn action-btn-export"
+                              onClick={() => setExportModalBatchId(selectedBatchId)}
+                              title="Export Batch Package"
+                            >
+                              <span className="action-btn-label">
+                                <span className="action-btn-topline">Export</span>
+                                <span className="action-btn-subline">Batch</span>
+                              </span>
+                            </button>
+                          </>
                         )}
                         {batchDetail.status === 'partially-completed' && (
                           <>
@@ -642,6 +656,13 @@ export default function DashboardPage() {
         onClose={() => setIsUploadModalOpen(false)}
         onSuccess={handleUploadSuccess}
       />
+      {exportModalBatchId && (
+        <ExportBatchModal
+          isOpen={Boolean(exportModalBatchId)}
+          batchId={exportModalBatchId}
+          onClose={() => setExportModalBatchId(null)}
+        />
+      )}
 
       {selectedBatchIds.length > 0 && (
         <div className="bulk-actions-floating-bar" aria-live="polite">

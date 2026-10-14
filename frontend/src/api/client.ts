@@ -253,3 +253,50 @@ export async function directUploadBatchFiles(
     }),
   })
 }
+
+export interface ExportResponse {
+  batch_id: string
+  format: 'json' | 'csv' | 'zip'
+  total_notes?: number
+  approved_notes?: number
+  content?: string
+  data_base64?: string
+  filename?: string
+  notes?: Array<{
+    note_id: string
+    approved: boolean
+    redacted_text: string
+    entity_count: number
+    entities: Array<{ type: string; value: string }>
+  }>
+}
+
+export interface CertificateResponse {
+  batch_id: string
+  format: 'json' | 'html'
+  certificate_id?: string
+  is_fully_compliant?: boolean
+  html?: string
+  summary?: {
+    total_notes_evaluated: number
+    approved_notes: number
+    total_phi_entities_sanitized: number
+  }
+}
+
+/** Export approved batch notes in JSON, CSV, or ZIP */
+export async function exportBatch(
+  batchId: string,
+  format: 'json' | 'csv' | 'zip' = 'json'
+): Promise<ExportResponse> {
+  return fetchApi(`/batches/${batchId}/export?format=${format}`)
+}
+
+/** Fetch verifiable de-identification compliance certificate */
+export async function getBatchCertificate(
+  batchId: string,
+  format: 'json' | 'html' = 'json'
+): Promise<CertificateResponse> {
+  return fetchApi(`/batches/${batchId}/certificate?format=${format}`)
+}
+
