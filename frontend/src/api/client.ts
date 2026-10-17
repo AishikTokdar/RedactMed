@@ -12,6 +12,7 @@ export interface Batch {
   created_at: string
   status: 'created' | 'ready' | 'processing' | 'completed' | 'partially-completed' | 'unknown'
   all_approved?: boolean
+  jurisdiction?: 'hipaa' | 'dpdp' | 'gdpr' | string
 }
 
 /** Detailed batch information with statistics */
@@ -25,6 +26,7 @@ export interface BatchDetail extends Batch {
   last_redrive_at?: string
   approved_at?: string
 }
+
 
 /** PHI statistics for a batch */
 export interface BatchPIIStats {
@@ -199,23 +201,27 @@ export interface RequestUploadUrlsResponse {
   batch_id: string
   urls: PresignedUrlItem[]
   input_count: number
+  jurisdiction?: string
 }
 
 export interface DirectUploadResponse {
   batch_id: string
   uploaded_count: number
   status: string
+  jurisdiction?: string
 }
 
 /** Requests S3 presigned upload URLs for batch document files */
 export async function requestUploadUrls(
   batchId: string | undefined,
-  files: Array<{ filename: string; content_type?: string }>
+  files: Array<{ filename: string; content_type?: string }>,
+  jurisdiction?: string
 ): Promise<RequestUploadUrlsResponse> {
   return fetchApi('/batches/upload-urls', {
     method: 'POST',
     body: JSON.stringify({
       ...(batchId ? { batch_id: batchId } : {}),
+      ...(jurisdiction ? { jurisdiction } : {}),
       files,
     }),
   })
@@ -243,16 +249,19 @@ export async function uploadFileToPresignedUrl(
 /** Fallback direct content upload for batch text files */
 export async function directUploadBatchFiles(
   batchId: string | undefined,
-  files: Array<{ filename: string; content: string }>
+  files: Array<{ filename: string; content: string }>,
+  jurisdiction?: string
 ): Promise<DirectUploadResponse> {
   return fetchApi('/batches/upload', {
     method: 'POST',
     body: JSON.stringify({
       ...(batchId ? { batch_id: batchId } : {}),
+      ...(jurisdiction ? { jurisdiction } : {}),
       files,
     }),
   })
 }
+
 
 export interface ExportResponse {
   batch_id: string

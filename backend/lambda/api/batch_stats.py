@@ -290,13 +290,14 @@ def update_note_approved_status(batch_id: str, note_id: str, approved: bool) -> 
     )
 
 
-def initialize_batch_stats(batch_id: str, input_count: int, status: str = "ready") -> None:
+def initialize_batch_stats(batch_id: str, input_count: int, status: str = "ready", jurisdiction: str = "hipaa") -> None:
     """Initialize or update batch stats item in DynamoDB.
 
     Args:
         batch_id: Batch identifier.
         input_count: Number of input files/notes.
         status: Initial batch status (default "ready").
+        jurisdiction: Compliance policy preset (e.g. "hipaa", "dpdp", "gdpr").
     """
     stats_table = _get_stats_table()
     if not stats_table:
@@ -314,9 +315,11 @@ def initialize_batch_stats(batch_id: str, input_count: int, status: str = "ready
                 "notes_with_pii": 0,
                 "approved_count": 0,
                 "status": status,
+                "jurisdiction": jurisdiction.lower() if jurisdiction else "hipaa",
                 "created_at": now,
                 "updated_at": now,
             }
         )
     except Exception:
         pass
+

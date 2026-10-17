@@ -92,11 +92,13 @@ export default function DashboardPage() {
     toastTimeoutIdsRef.current.push(timeoutId)
   }, [])
 
-  const handleUploadSuccess = useCallback((newBatchId: string, noteCount: number) => {
+  const handleUploadSuccess = useCallback((newBatchId: string, noteCount: number, jurisdiction?: string) => {
     queryClient.invalidateQueries({ queryKey: ['batches'] })
     setSelectedBatchId(newBatchId)
-    pushToast(`Batch ${newBatchId} created with ${noteCount} note${noteCount === 1 ? '' : 's'}. Ready for de-identification!`, 'success')
+    const jurLabel = jurisdiction ? ` (${jurisdiction.toUpperCase()} policy)` : ''
+    pushToast(`Batch ${newBatchId} created with ${noteCount} note${noteCount === 1 ? '' : 's'}${jurLabel}. Ready for de-identification!`, 'success')
   }, [queryClient, pushToast])
+
 
   const toggleBatchSelection = useCallback((batchId: string, event?: React.SyntheticEvent) => {
     if (event) event.stopPropagation()
@@ -377,9 +379,16 @@ export default function DashboardPage() {
                         onClick={() => setSelectedBatchId(batch.batch_id)}
                       >
                         <span className="sidebar-item-name">{batch.batch_id}</span>
-                        <span className={`sidebar-badge sidebar-badge-${sidebarStatus.key}`}>
-                          {sidebarStatus.label}
-                        </span>
+                        <div className="sidebar-item-badges">
+                          {batch.jurisdiction && (
+                            <span className={`sidebar-jurisdiction-badge jurisdiction-${batch.jurisdiction.toLowerCase()}`}>
+                              {batch.jurisdiction.toUpperCase()}
+                            </span>
+                          )}
+                          <span className={`sidebar-badge sidebar-badge-${sidebarStatus.key}`}>
+                            {sidebarStatus.label}
+                          </span>
+                        </div>
                       </button>
                     </div>
                   )
@@ -476,6 +485,11 @@ export default function DashboardPage() {
                     {selectedBatchStatus && (
                       <span className={`detail-status-badge detail-status-${selectedBatchStatus.key}`}>
                         {selectedBatchStatus.label}
+                      </span>
+                    )}
+                    {batchDetail.jurisdiction && (
+                      <span className={`batch-jurisdiction-badge jurisdiction-${batchDetail.jurisdiction.toLowerCase()}`}>
+                        {batchDetail.jurisdiction.toUpperCase()} Policy
                       </span>
                     )}
                   </div>

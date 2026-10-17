@@ -36,7 +36,22 @@ class TestUploadRouteHandlers(unittest.TestCase):
         self.assertEqual(resp["urls"][0]["filename"], "note1.txt")
         self.assertEqual(resp["urls"][1]["filename"], "note2.txt")
         self.assertEqual(resp["urls"][0]["upload_url"], "https://s3.amazonaws.com/test-bucket/presigned-url")
-        mock_init_stats.assert_called_once_with("test-batch-001", 2)
+        self.assertEqual(resp["jurisdiction"], "hipaa")
+        mock_init_stats.assert_called_once_with("test-batch-001", 2, jurisdiction="hipaa")
+
+    @patch("route_handlers.initialize_batch_stats")
+    @patch("storage.generate_presigned_upload_url")
+    def test_request_upload_urls_custom_jurisdiction(self, mock_presign, mock_init_stats):
+        mock_presign.return_value = "https://s3.amazonaws.com/test-bucket/presigned-url"
+        body = {
+            "batch_id": "test-batch-india",
+            "jurisdiction": "dpdp",
+            "files": [{"filename": "note1.txt", "content_type": "text/plain"}],
+        }
+        status, resp = handlers.request_upload_urls({}, body, {})
+        self.assertEqual(status, 200)
+        self.assertEqual(resp["jurisdiction"], "dpdp")
+        mock_init_stats.assert_called_once_with("test-batch-india", 1, jurisdiction="dpdp")
 
     def test_request_upload_urls_missing_files(self):
         status, resp = handlers.request_upload_urls({}, {}, {})
@@ -59,8 +74,9 @@ class TestUploadRouteHandlers(unittest.TestCase):
         self.assertEqual(resp["batch_id"], "test-batch-002")
         self.assertEqual(resp["uploaded_count"], 2)
         self.assertEqual(resp["status"], "ready")
+        self.assertEqual(resp["jurisdiction"], "hipaa")
         self.assertEqual(mock_put_text.call_count, 2)
-        mock_init_stats.assert_called_once_with("test-batch-002", 2)
+        mock_init_stats.assert_called_once_with("test-batch-002", 2, jurisdiction="hipaa")
 
     def test_upload_batch_files_empty(self):
         status, resp = handlers.upload_batch_files({}, {"files": []}, {})
@@ -70,3 +86,4 @@ class TestUploadRouteHandlers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

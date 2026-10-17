@@ -595,26 +595,22 @@ def request_upload_urls(params: dict, body: dict, query: dict) -> tuple[int, dic
     if not results:
         return 400, {"error": "No valid filenames provided"}
 
-    initialize_batch_stats(batch_id, len(results))
+    jurisdiction = str(body.get("jurisdiction", "hipaa")).lower().strip()
+    if jurisdiction not in ("hipaa", "dpdp", "gdpr"):
+        jurisdiction = "hipaa"
+
+    initialize_batch_stats(batch_id, len(results), jurisdiction=jurisdiction)
 
     return 200, {
         "batch_id": batch_id,
         "urls": results,
         "input_count": len(results),
+        "jurisdiction": jurisdiction,
     }
 
 
 def upload_batch_files(params: dict, body: dict, query: dict) -> tuple[int, dict]:
-    """POST /batches/upload - Direct upload text content files for a batch.
-
-    Args:
-        params: URL path parameters.
-        body: Dict with optional 'batch_id' and required 'files' list of {filename, content}.
-        query: Query string parameters.
-
-    Returns:
-        Tuple of (status_code, response_dict).
-    """
+    """Direct upload text files for a batch."""
     from datetime import datetime, timezone
     import re
 
@@ -643,12 +639,17 @@ def upload_batch_files(params: dict, body: dict, query: dict) -> tuple[int, dict
     if uploaded_count == 0:
         return 400, {"error": "No valid files uploaded"}
 
-    initialize_batch_stats(batch_id, uploaded_count)
+    jurisdiction = str(body.get("jurisdiction", "hipaa")).lower().strip()
+    if jurisdiction not in ("hipaa", "dpdp", "gdpr"):
+        jurisdiction = "hipaa"
+
+    initialize_batch_stats(batch_id, uploaded_count, jurisdiction=jurisdiction)
 
     return 200, {
         "batch_id": batch_id,
         "uploaded_count": uploaded_count,
         "status": "ready",
+        "jurisdiction": jurisdiction,
     }
 
 

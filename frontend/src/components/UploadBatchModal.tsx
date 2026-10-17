@@ -7,10 +7,12 @@ import {
 } from '../api/client'
 import './UploadBatchModal.css'
 
+export type ComplianceJurisdiction = 'hipaa' | 'dpdp' | 'gdpr'
+
 export interface UploadBatchModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: (batchId: string, noteCount: number) => void
+  onSuccess: (batchId: string, noteCount: number, jurisdiction?: ComplianceJurisdiction) => void
 }
 
 interface NoteFileItem {
@@ -45,12 +47,14 @@ export function formatFileSize(bytes: number): string {
 
 export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadBatchModalProps) {
   const [batchIdInput, setBatchIdInput] = useState('')
+  const [jurisdiction, setJurisdiction] = useState<ComplianceJurisdiction>('hipaa')
   const [isDragOver, setIsDragOver] = useState(false)
   const [files, setFiles] = useState<NoteFileItem[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
 
   if (!isOpen) return null
 
@@ -151,7 +155,6 @@ export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadB
     const targetBatchId = batchIdInput.trim() || generateDefaultBatchId()
 
     try {
-      // Step 1: Attempt S3 Presigned URL Upload workflow
       let useDirectFallback = false
       try {
         const reqPayload = files.map((f) => ({
@@ -159,7 +162,7 @@ export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadB
           content_type: 'text/plain',
         }))
 
-        const { urls, batch_id: returnedBatchId } = await requestUploadUrls(targetBatchId, reqPayload)
+        const { urls, batch_id: returnedBatchId } = await requestUploadUrls(targetBatchId, reqPayload, jurisdiction)
 
         let completedCount = 0
         for (let i = 0; i < files.length; i++) {
@@ -185,7 +188,7 @@ export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadB
           )
         }
 
-        onSuccess(returnedBatchId, files.length)
+        onSuccess(returnedBatchId, files.length, jurisdiction)
         onClose()
         return
       } catch (presignedErr) {
@@ -193,7 +196,6 @@ export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadB
         useDirectFallback = true
       }
 
-      // Step 2: Fallback direct content upload
       if (useDirectFallback) {
         const directPayload = await Promise.all(
           files.map(async (f) => ({
@@ -202,11 +204,12 @@ export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadB
           }))
         )
 
-        const result = await directUploadBatchFiles(targetBatchId, directPayload)
+
+        const result = await directUploadBatchFiles(targetBatchId, directPayload, jurisdiction)
         setUploadProgress(100)
         setFiles((prev) => prev.map((f) => ({ ...f, status: 'success' })))
 
-        onSuccess(result.batch_id, files.length)
+        onSuccess(result.batch_id, files.length, jurisdiction)
         onClose()
       }
     } catch (err) {
@@ -250,6 +253,60 @@ export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadB
               disabled={isUploading}
             />
           </div>
+
+          <div className="upload-policy-group">
+            <label className="upload-policy-label">Compliance Policy Preset:</label>
+            <div className="jurisdiction-options-grid">
+              <button
+                type="button"
+                className={`jurisdiction-card ${jurisdiction === 'hipaa' ? 'selected' : ''}`}
+                onClick={() => setJurisdiction('hipaa')}
+                disabled={isUploading}
+              >
+                <div className="jurisdiction-card-header">
+                  <span className="jurisdiction-flag">🏛️</span>
+                  <span className="jurisdiction-name">HIPAA Safe Harbor</span>
+                  {jurisdiction === 'hipaa' && <span className="jurisdiction-pill">Active</span>}
+                </div>
+                <p className="jurisdiction-desc">
+                  US 45 CFR § 164.514 standard: 18 statutory PHI classes, relative date shifting, SSNs & MRNs.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                className={`jurisdiction-card ${jurisdiction === 'dpdp' ? 'selected' : ''}`}
+                onClick={() => setJurisdiction('dpdp')}
+                disabled={isUploading}
+              >
+                <div className="jurisdiction-card-header">
+                  <span className="jurisdiction-flag">🇮🇳</span>
+                  <span className="jurisdiction-name">India DPDP / ABDM</span>
+                  {jurisdiction === 'dpdp' && <span className="jurisdiction-pill">Active</span>}
+                </div>
+                <p className="jurisdiction-desc">
+                  Aadhaar (12-digit / Verhoeff), PAN, ABHA Health IDs, +91 mobile, Ayushman Bharat registry.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                className={`jurisdiction-card ${jurisdiction === 'gdpr' ? 'selected' : ''}`}
+                onClick={() => setJurisdiction('gdpr')}
+                disabled={isUploading}
+              >
+                <div className="jurisdiction-card-header">
+                  <span className="jurisdiction-flag">🇪🇺</span>
+                  <span className="jurisdiction-name">EU GDPR / NHS</span>
+                  {jurisdiction === 'gdpr' && <span className="jurisdiction-pill">Active</span>}
+                </div>
+                <p className="jurisdiction-desc">
+                  Article 9 Special Category Health Data, NHS 10-digit checksums, EU National IDs, IBANs.
+                </p>
+              </button>
+            </div>
+          </div>
+
 
           <div
             className={`upload-dropzone ${isDragOver ? 'drag-over' : ''} ${isUploading ? 'disabled' : ''}`}
@@ -351,9 +408,10 @@ export default function UploadBatchModal({ isOpen, onClose, onSuccess }: UploadB
                 <span className="spinner-small" /> Uploading Batch...
               </>
             ) : (
-              `Create & Upload Batch (${files.length} notes)`
+              `Create & Upload Batch (${files.length} notes • ${jurisdiction.toUpperCase()})`
             )}
           </button>
+
         </div>
       </div>
     </div>

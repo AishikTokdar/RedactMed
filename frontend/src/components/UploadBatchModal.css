@@ -104,7 +104,99 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+.upload-policy-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.upload-policy-label {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-secondary, #475569);
+}
+
+.jurisdiction-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.jurisdiction-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 0.75rem 0.875rem;
+  background: var(--bg-card, #ffffff);
+  border: 1.5px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+}
+
+.jurisdiction-card:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.jurisdiction-card.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.jurisdiction-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.jurisdiction-flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.jurisdiction-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jurisdiction-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 9999px;
+  background: #2563eb;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.jurisdiction-desc {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-muted, #64748b);
+}
+
+@media (max-width: 640px) {
+  .jurisdiction-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .upload-dropzone {
+
   border: 2px dashed var(--border-color, #cbd5e1);
   border-radius: 12px;
   padding: 2rem 1.5rem;

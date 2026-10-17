@@ -878,6 +878,11 @@ RedactMed provides built-in compliance presets adapted to international healthca
 
 #### Specifying Compliance Jurisdiction
 
+When uploading documents in the RedactMed Web Dashboard, select the appropriate policy card in the **Upload Document Batch** modal:
+- 🏛️ **HIPAA Safe Harbor**: Default for US healthcare systems and HIPAA Business Associates.
+- 🇮🇳 **India DPDP / ABDM**: Tailored for Indian hospitals, diagnostic chains, and ABHA-integrated EHRs.
+- 🇪🇺 **EU GDPR / NHS**: Tailored for European health data spaces and NHS Trusts.
+
 Via the Python CLI or REST API:
 ```bash
 # Ingest batch with Indian DPDP Act preset
