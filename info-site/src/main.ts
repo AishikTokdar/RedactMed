@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSmoothScroll()
   initTechGridAnimation()
   initNavScrollEffect()
+  initArchitectureTabs()
 })
 
 function initScrollAnimations() {
@@ -172,5 +173,31 @@ function initNavScrollEffect() {
     nav.style.background = window.scrollY > 100
       ? 'rgba(7, 13, 24, 0.98)'
       : 'linear-gradient(to bottom, rgba(7, 13, 24, 0.95), rgba(7, 13, 24, 0.8))'
+  })
+}
+
+function initArchitectureTabs() {
+  const buttons = document.querySelectorAll('.architecture-tab-btn')
+  const views = document.querySelectorAll('.architecture-card-view')
+
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetId = button.getAttribute('data-target')
+      buttons.forEach(b => {
+        const btnEl = b as HTMLElement
+        btnEl.style.background = 'rgba(15, 23, 42, 0.7)'
+        btnEl.style.color = '#94a3b8'
+        btnEl.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+      })
+      const activeBtn = button as HTMLElement
+      activeBtn.style.background = '#2aa7d6'
+      activeBtn.style.color = '#ffffff'
+      activeBtn.style.borderColor = '#2aa7d6'
+
+      views.forEach(v => {
+        const viewEl = v as HTMLElement
+        viewEl.style.display = (viewEl.id === targetId) ? 'block' : 'none'
+      })
+    })
   })
 }

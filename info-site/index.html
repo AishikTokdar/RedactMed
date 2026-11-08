@@ -305,24 +305,67 @@
     <section id="architecture" class="architecture">
       <div class="section-header">
         <span class="section-tag">System Design</span>
-        <h2 class="section-title">Architecture</h2>
+        <h2 class="section-title">Architecture Deep-Dive</h2>
         <p class="section-description">
-          Infrastructure defined as code with AWS CDK. One-command deployment to your AWS account.
+          Engineered for production scale across cloud infrastructure, hybrid de-identification, and compliance governance.
         </p>
       </div>
 
+      <div class="architecture-tabs" style="display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <button type="button" class="architecture-tab-btn active" data-target="arch-primary" style="padding: 0.6rem 1.25rem; border-radius: 999px; border: 1px solid #2aa7d6; background: #2aa7d6; color: #ffffff; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
+          1. Distributed Cloud Architecture
+        </button>
+        <button type="button" class="architecture-tab-btn" data-target="arch-hybrid" style="padding: 0.6rem 1.25rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(15, 23, 42, 0.7); color: #94a3b8; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
+          2. Two-Stage Hybrid De-PHI Pipeline
+        </button>
+        <button type="button" class="architecture-tab-btn" data-target="arch-hitl" style="padding: 0.6rem 1.25rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(15, 23, 42, 0.7); color: #94a3b8; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
+          3. HITL & Compliance Architecture
+        </button>
+      </div>
+
       <div class="architecture-placeholder">
-        <img
-          class="architecture-diagram"
-          src="/architecture-diagram.svg"
-          alt="Architecture diagram for the PHI de-identification platform"
-          loading="lazy"
-        />
+        <div id="arch-primary" class="architecture-card-view">
+          <img
+            class="architecture-diagram"
+            src="../docs/Primary_Architecture.png"
+            alt="RedactMed Distributed Cloud Architecture Diagram"
+            loading="lazy"
+          />
+          <span class="placeholder-subtext">
+            <strong>Distributed Cloud Infrastructure:</strong> Browser direct-to-S3 presigned uploads, SQS task queueing with 10x Lambda concurrency, Bedrock Claude Sonnet 4.5 prompt caching, DynamoDB atomic state counters, and API Gateway REST controller with DLQ redrive.
+          </span>
+        </div>
+
+        <div id="arch-hybrid" class="architecture-card-view" style="display: none;">
+          <img
+            class="architecture-diagram"
+            src="../docs/Hydrid-DePHI_Architecture.png"
+            alt="RedactMed Two-Stage Hybrid AI De-Identification Pipeline"
+            loading="lazy"
+          />
+          <span class="placeholder-subtext">
+            <strong>Two-Stage Hybrid De-PHI Pipeline:</strong> UTF/BOM encoding auto-detection, Stage 1 deterministic regex pre-filter (SSN, Aadhaar, PAN, ABHA, Email, IP, URL), Stage 2 Pydantic-AI Bedrock agent with prompt caching & compact token decoding, entity fusion, date shifting, and synthetic surrogates.
+          </span>
+        </div>
+
+        <div id="arch-hitl" class="architecture-card-view" style="display: none;">
+          <img
+            class="architecture-diagram"
+            src="../docs/HITL-Compliance_Architecture.png"
+            alt="RedactMed Human-in-the-Loop Review and Compliance Architecture"
+            loading="lazy"
+          />
+          <span class="placeholder-subtext">
+            <strong>Human-in-the-Loop Review & Compliance:</strong> React 18 Diff Viewer with interactive PHI inspector, reviewer keyboard hotkeys, single/mass batch approval gates, SHA-256 document hashing chain, and export packaging.
+          </span>
+        </div>
+
         <div class="architecture-tags">
-          <span class="architecture-tag">Serverless</span>
-          <span class="architecture-tag">Event-Driven</span>
-          <span class="architecture-tag">Cloud-Native</span>
-          <span class="architecture-tag">Secure Authentication</span>
+          <span class="architecture-tag">Serverless Event-Driven</span>
+          <span class="architecture-tag">Two-Stage Cascade</span>
+          <span class="architecture-tag">Bedrock Prompt Caching</span>
+          <span class="architecture-tag">HITL Diff Viewer</span>
+          <span class="architecture-tag">SHA-256 Compliance Chain</span>
         </div>
       </div>
     </section>

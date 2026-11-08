@@ -20,6 +20,9 @@
 - [Resume-Worthy Impact &amp; Numerical Highlights](#resume-worthy-impact--numerical-highlights)
 - [System Architecture](#system-architecture)
   - [Architecture Flow Diagram](#architecture-flow-diagram)
+  - [1. Distributed Cloud & Infrastructure Architecture](#1-distributed-cloud--infrastructure-architecture)
+  - [2. Two-Stage Hybrid AI De-Identification Pipeline](#2-two-stage-hybrid-ai-de-identification-pipeline)
+  - [3. Human-in-the-Loop Review & Cryptographic Compliance Architecture](#3-human-in-the-loop-review--cryptographic-compliance-architecture)
   - [Detailed Service Breakdown &amp; Contributions](#detailed-service-breakdown--contributions)
 - [Tech Stack](#tech-stack)
 - [Supported AI Models &amp; Model Switching Guide](#supported-ai-models--model-switching-guide)
@@ -190,7 +193,7 @@ Quantitative metrics demonstrating technical scale, performance, cost efficiency
 
 ## System Architecture
 
-![RedactMed AWS Architecture Diagram](info-site/public/architecture-diagram.svg)
+RedactMed is engineered as an event-driven, decoupled serverless platform divided into three core operational layers: distributed cloud infrastructure, two-stage hybrid AI de-identification, and human-in-the-loop compliance governance.
 
 ### Architecture Flow Diagram
 
@@ -230,6 +233,47 @@ Quantitative metrics demonstrating technical scale, performance, cost efficiency
 │ React Review UI   │ ◄─── Hosted on AWS Amplify (Diff Viewer & Approval)
 └───────────────────┘
 ```
+
+---
+
+### 1. Distributed Cloud & Infrastructure Architecture
+
+![RedactMed Distributed Cloud Architecture](./docs/Primary_Architecture.png)
+
+The primary infrastructure topology provides decoupled, fault-tolerant processing from client ingestion to final S3 release:
+- **Direct Browser Ingestion**: Uploads `.txt` files or `.zip` archives directly to Amazon S3 via presigned PUT URLs with client-side in-memory archive extraction (`JSZip`), bypassing API Gateway payload and Lambda timeout constraints.
+- **Asynchronous Task Queueing**: Ingestion Lambda enumerates S3 object keys and enqueues atomic message tasks into Amazon SQS (`redactmed-queue`, 360-second visibility timeout).
+- **Worker Concurrency & Rate Limit Guarding**: SQS feeds Worker Lambdas with a maximum concurrency limit of 10 to strictly adhere to downstream LLM inference rate limits.
+- **Dead-Letter Queue (DLQ) Isolation**: Failing note attempts automatically isolate to `redactmed-dlq` after 3 retries without stalling or aborting the remainder of the batch.
+- **DLQ Redrive API**: Reviewers can re-enqueue failed tasks directly from the dashboard via `POST /batches/{batch_id}/redrive`.
+
+---
+
+### 2. Two-Stage Hybrid AI De-Identification Pipeline
+
+![RedactMed Two-Stage Hybrid AI De-Identification Pipeline](./docs/Hydrid-DePHI_Architecture.png)
+
+RedactMed optimizes throughput and minimizes LLM token costs through a two-stage cascade:
+- **Encoding & Validation Guard**: Automatically detects document encodings (UTF-8, UTF-16 BOM, Latin-1) and enforces length boundaries (`max_chars`).
+- **Stage 1 (Deterministic Regex Pre-Filter)**: High-speed, zero-latency extraction of structured identifiers (SSN, Aadhaar, PAN, ABHA ID, Email, IP, URL, MRN) with 100% confidence.
+- **Stage 2 (Context-Aware LLM Inference)**: Invokes Anthropic Claude Sonnet 4.5 via Amazon Bedrock with prompt caching enabled on system instructions and few-shot examples (cutting input token costs by 27.6%+). Compact short-code token encoding (`nam`, `adr`, `dat`, etc.) reduces output token overhead by 60–70%.
+- **Entity Fusion & Deduplication**: Unifies regex spans and LLM entities, resolving boundary overlaps and sorting entities in chronological document order.
+- **Multi-Jurisdiction Policy & Transformation Engine**: Enforces policy presets (US HIPAA Safe Harbor 18, Indian DPDP / ABDM, EU GDPR / UK NHS) and routes to either Canonical Tagging (`[NAME]`, `[DATE]`), Longitudinal Date Shifting (deterministic per-patient salted SHA-256 offset), or Synthetic Surrogates.
+- **Dual S3 Persistence**: Simultaneously writes sanitized text (`output/{note_id}_redacted.txt`) and structured coordinate metadata (`output/{note_id}_entities.json`) to S3, followed by atomic DynamoDB counter updates.
+
+---
+
+### 3. Human-in-the-Loop Review & Cryptographic Compliance Architecture
+
+![RedactMed Human-in-the-Loop Review and Compliance Architecture](./docs/HITL-Compliance_Architecture.png)
+
+Enterprise healthcare compliance requires human verification, audit provenance, and cryptographic non-repudiation:
+- **Cognito SRP Authentication & JWT Authorizer**: Strict role-based access control (RBAC) securing REST endpoints via Amazon API Gateway.
+- **Synchronized Visual Diff Viewer**: Side-by-side comparison of original EHR notes against redacted text using `jsdiff` token-level diffing with category color badges and tooltip inspections.
+- **Interactive Entity Inspector & Click-to-Redact**: Filter detected PHI by category and confidence threshold; highlight custom phrases to apply instant manual overrides.
+- **Single & Mass Batch Approval Gates**: Approve individual notes or execute mass batch clearance (`POST /batches/{batch_id}/approve-all`), promoting files to `approvals/` in S3.
+- **Cryptographic Compliance Engine**: Generates SHA-256 digests for each input and sanitized document, linking them into a tamper-evident master integrity hash.
+- **Batch Export Center**: Generates audit-ready compliance certificates (JSON / printable HTML) alongside multi-format archive bundles (ZIP, JSON, CSV).
 
 ---
 
@@ -817,6 +861,8 @@ Upon signing in, you land on the **Batches Overview** screen:
 
 #### 4. Reviewing Notes in the Interactive Diff Viewer & Reviewer Tools
 
+![RedactMed Human-in-the-Loop Review and Compliance Architecture](./docs/HITL-Compliance_Architecture.png)
+
 Click **Review Batch** or select an individual note to enter the full-screen clinical reviewer workspace:
 
 - **Side-by-Side Synchronized Diff**:
@@ -923,14 +969,7 @@ Rather than inserting bracketed tokens (`[NAME]`, `[HOSPITAL]`), RedactMed can s
 
 To maximize inference speed and minimize Amazon Bedrock token consumption, RedactMed features a two-stage hybrid cascade architecture:
 
-```
-Raw Clinical Text ──► [ Stage 1: Deterministic Pre-Filter ] ──► [ Stage 2: Claude Sonnet 4.5 ] ──► Final Sanitized Text
-                              │                                            │
-                              ├─ SSN / Aadhaar / PAN                       ├─ Semantic Doctor/Patient Names
-                              ├─ NHS Numbers (Mod 11)                      ├─ Clinic & Department Context
-                              ├─ IPv4 / IPv6 / Web URLs                    ├─ Ambiguous Dates & Relations
-                              └─ Direct Contact Details                    └─ Medical Acronym Disambiguation
-```
+![RedactMed Two-Stage Hybrid AI De-Identification Pipeline](./docs/Hydrid-DePHI_Architecture.png)
 
 1. **Stage 1 (Deterministic Engine)**: Evaluates high-entropy structured identifiers using compiled regex patterns and checksum validators (Verhoeff for Aadhaar, Mod 11 for NHS, Luhn for MRNs) in < 1ms per note.
 2. **Stage 2 (LLM Semantic Reasoning)**: Feeds pre-masked context to Claude Sonnet 4.5 via Bedrock, reducing prompt token ingestion by ~35% and allowing the LLM to focus strictly on complex linguistic ambiguity.
